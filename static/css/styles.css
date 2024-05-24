@@ -1,0 +1,106 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #2C2F33;
+    color: #FFFFFF;
+    margin: 0;
+    padding: 0;
+}
+
+.notes-sidebar {
+    min-width: 300px;
+    padding: 20px;
+    position: fixed;
+    right: 0;
+    top: 0;
+    height: 100%;
+    background-color: #23272A;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.5);
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.resizer {
+    width: 10px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    cursor: ew-resize;
+}
+
+h2 {
+    margin-top: 0;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    padding: 10px;
+    background-color: #7289DA;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    position: relative;
+}
+
+.input-container {
+    display: flex;
+    align-items: center;
+    background-color: #FFFFFF;
+    border-radius: 25px;
+    padding: 5px 10px;
+}
+
+.file-label {
+    cursor: pointer;
+}
+
+.icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+}
+
+#note-input {
+    border: none;
+    outline: none;
+    flex-grow: 1;
+}
+
+button {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.context-menu {
+    display: none;
+    position: absolute;
+    background-color: #23272A;
+    border: 1px solid #99AAB5;
+    border-radius: 5px;
+    z-index: 1000;
+    width: 150px;
+}
+
+.context-menu.active {
+    display: block;
+}
+
+.context-menu ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.context-menu li {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.context-menu li:hover {
+    background-color: #99AAB5;
+}
