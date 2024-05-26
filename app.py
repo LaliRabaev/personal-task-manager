@@ -28,7 +28,7 @@ class Notes(db.Model):
 
 @app.route('/')
 def index():
-    notes = Notes.query.all() #TBD - think if there's a reason to take all or just the active notes
+    notes = Notes.query.filter_by(status='active').all()
     return render_template('index.html', notes=notes)
 
 @app.route('/add', methods=['POST'])
@@ -37,6 +37,26 @@ def add_note():
     if note_content:
         new_note = Notes(note_content=note_content)
         db.session.add(new_note)
+        db.session.commit()
+        return jsonify(success=True)
+    return jsonify(success=False)
+
+@app.route('/edit/<int:note_id>', methods=['POST'])
+def edit_note(note_id):
+    note = Notes.query.get(note_id)
+    if note:
+        note_content = request.json.get('note_content')
+        note.note_content = note_content
+        note.updated_at = datetime.utcnow()
+        db.session.commit()
+        return jsonify(success=True)
+    return jsonify(success=False)
+
+@app.route('/delete/<int:note_id>', methods=['POST'])
+def delete_note(note_id):
+    note = Notes.query.get(note_id)
+    if note:
+        note.status = 'inactive'
         db.session.commit()
         return jsonify(success=True)
     return jsonify(success=False)
