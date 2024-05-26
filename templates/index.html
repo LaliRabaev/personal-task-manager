@@ -12,9 +12,11 @@
         <div class="resizer" id="resizer"></div>
         <h2>Notes</h2>
         <ul id="notes-list">
-            <!-- Notes will be dynamically inserted here -->
+            {% for note in notes %}
+                <li>{{ note.note_content }}</li>
+            {% endfor %}
         </ul>
-        <form id="notes-form" action="#" method="POST">
+        <form id="notes-form" action="{{ url_for('add_note') }}" method="POST">
             <div class="input-container">
                 <input type="file" id="file-input" style="display: none;">
                 <label for="file-input" class="file-label">
@@ -43,84 +45,106 @@
             </li>
         </ul>
     </div>
-<script>
-    // JavaScript for handling form submission and dynamic updates
-    document.getElementById('notes-form').addEventListener('submit', function(event) {
-        event.preventDefault();
-        let noteText = document.getElementById('note-input').value;
-        if (noteText) {
-            let noteElement = document.createElement('li');
-            noteElement.className = 'note-item';
-            noteElement.textContent = noteText;
-            noteElement.addEventListener('contextmenu', showContextMenu);
-            document.getElementById('notes-list').appendChild(noteElement);
-            document.getElementById('note-input').value = '';
+    <script>
+        // JavaScript for handling form submission and dynamic updates
+        document.getElementById('notes-form').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the default form submission behavior
+    
+            let noteText = document.getElementById('note-input').value; // Get the value from the note input field
+    
+            if (noteText) {
+                // Create a new FormData object to handle form data submission via AJAX
+                let formData = new FormData();
+                formData.append('note', noteText); // Append the note content to the FormData object
+    
+                // Send an AJAX request to the server to save the note
+                fetch('{{ url_for("add_note") }}', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json()) // Parse the JSON response
+                .then(data => {
+                    if (data.success) {
+                        // If the note was saved successfully, add it to the notes list
+                        let noteElement = document.createElement('li');
+                        noteElement.className = 'note-item';
+                        noteElement.textContent = noteText;
+                        noteElement.addEventListener('contextmenu', showContextMenu);
+                        document.getElementById('notes-list').appendChild(noteElement);
+                        document.getElementById('note-input').value = ''; // Clear the input field
+                    } else {
+                        alert('Error saving note');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        });
+    
+        document.getElementById('note-input').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent the default behavior of the Enter key
+                document.getElementById('notes-form').dispatchEvent(new Event('submit')); // Submit the form programmatically
+            }
+        });
+    
+        // Resizable sidebar
+        const resizer = document.getElementById('resizer');
+        const sidebar = document.getElementById('notes-sidebar');
+        let isResizing = false;
+    
+        resizer.addEventListener('mousedown', function(e) {
+            isResizing = true; // Set the resizing flag to true
+            document.addEventListener('mousemove', resize); // Add mousemove event listener
+            document.addEventListener('mouseup', stopResize); // Add mouseup event listener
+        });
+    
+        function resize(e) {
+            if (isResizing) {
+                const newWidth = window.innerWidth - e.clientX; // Calculate the new width based on mouse position
+                sidebar.style.width = newWidth + 'px'; // Set the new width of the sidebar
+            }
         }
-    });
-
-    document.getElementById('note-input').addEventListener('keydown', function(event) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            document.getElementById('notes-form').dispatchEvent(new Event('submit'));
+    
+        function stopResize() {
+            isResizing = false; // Set the resizing flag to false
+            document.removeEventListener('mousemove', resize); // Remove mousemove event listener
+            document.removeEventListener('mouseup', stopResize); // Remove mouseup event listener
         }
-    });
-
-    // Resizable sidebar
-    const resizer = document.getElementById('resizer');
-    const sidebar = document.getElementById('notes-sidebar');
-    let isResizing = false;
-
-    resizer.addEventListener('mousedown', function(e) {
-        isResizing = true;
-        document.addEventListener('mousemove', resize);
-        document.addEventListener('mouseup', stopResize);
-    });
-
-    function resize(e) {
-        if (isResizing) {
-            const newWidth = window.innerWidth - e.clientX;
-            sidebar.style.width = newWidth + 'px';
+    
+        // Context menu
+        const contextMenu = document.getElementById('context-menu');
+        let currentNote = null;
+    
+        function showContextMenu(event) {
+            event.preventDefault(); // Prevent the default context menu from appearing
+            currentNote = event.target; // Set the current note to the note that was right-clicked
+            contextMenu.style.top = `${event.clientY}px`; // Set the position of the context menu
+            contextMenu.style.left = `${event.clientX}px`; // Set the position of the context menu
+            contextMenu.classList.add('active'); // Show the context menu
         }
-    }
-
-    function stopResize() {
-        isResizing = false;
-        document.removeEventListener('mousemove', resize);
-        document.removeEventListener('mouseup', stopResize);
-    }
-
-    // Context menu
-    const contextMenu = document.getElementById('context-menu');
-    let currentNote = null;
-
-    function showContextMenu(event) {
-        event.preventDefault();
-        currentNote = event.target;
-        contextMenu.style.top = `${event.clientY}px`;
-        contextMenu.style.left = `${event.clientX}px`;
-        contextMenu.classList.add('active');
-    }
-
-    function editNote() {
-        const noteText = prompt('Edit your note:', currentNote.textContent);
-        if (noteText !== null) {
-            currentNote.textContent = noteText;
+    
+        function editNote() {
+            const noteText = prompt('Edit your note:', currentNote.textContent); // Prompt the user to edit the note text
+            if (noteText !== null) {
+                currentNote.textContent = noteText; // Update the note text
+            }
+            hideContextMenu(); // Hide the context menu
         }
-        hideContextMenu();
-    }
-
-    function deleteNote() {
-        currentNote.remove();
-        hideContextMenu();
-    }
-
-    function hideContextMenu() {
-        contextMenu.classList.remove('active');
-    }
-
-    window.addEventListener('click', function() {
-        hideContextMenu();
-    });
-</script>
+    
+        function deleteNote() {
+            currentNote.remove(); // Remove the current note
+            hideContextMenu(); // Hide the context menu
+        }
+    
+        function hideContextMenu() {
+            contextMenu.classList.remove('active'); // Hide the context menu
+        }
+    
+        window.addEventListener('click', function() {
+            hideContextMenu(); // Hide the context menu when clicking anywhere else
+        });
+    </script>    
 </body>
 </html>
