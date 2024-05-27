@@ -10,7 +10,13 @@
 <body>
     <div class="notes-sidebar" id="notes-sidebar">
         <div class="resizer" id="resizer"></div>
-        <h2>Notes</h2>
+        <div class="header">
+            <h2>Notes</h2>
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search notes...">
+                <img src="{{ url_for('static', filename='icons/search.png') }}" alt="Search" class="search-icon">
+            </div>
+        </div>
         <ul id="notes-list">
             {% for note in notes %}
                 <li class="note_item" data-id="{{ note.id }}" oncontextmenu="showContextMenu(event)">
@@ -190,6 +196,19 @@
                     });
                 }
             }
+        });
+
+        // Smart search functionality
+        document.getElementById('search-input').addEventListener('input', function(event) {
+            const searchTerm = event.target.value.toLowerCase();
+            document.querySelectorAll('.note_item').forEach(note => {
+                const noteContent = note.textContent.toLowerCase();
+                if (noteContent.includes(searchTerm)) {
+                    note.style.display = '';
+                } else {
+                    note.style.display = 'none';
+                }
+            });
         });
 
         // Ensure all notes have the correct event listener for the context menu

@@ -8,6 +8,7 @@ body {
 
 .notes-sidebar {
     min-width: 300px;
+    max-width: 800px;
     padding: 0 20px;
     position: fixed;
     right: 0;
@@ -30,8 +31,29 @@ body {
     cursor: ew-resize;
 }
 
-h2 {
-    margin-top: 15px;
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+#search-input {
+    padding: 7px 10px 7px 30px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.search-icon {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    left: 10px;
 }
 
 ul {
