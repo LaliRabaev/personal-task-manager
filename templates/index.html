@@ -20,7 +20,9 @@
         <ul id="notes-list">
             {% for note in notes %}
                 <li class="note_item" data-id="{{ note.id }}" data-starred="{{ '1' if note.is_starred else '0' }}" oncontextmenu="showContextMenu(event)">
-                    {{ note.note_content }}
+                    <div class="drag-handle">☰</div>
+                    <span class="note_content">{{ note.note_content }}</span>
+                    <span class="note_date">{{ note.updated_at }}</span>
                 </li>
             {% endfor %}
         </ul>
@@ -261,6 +263,60 @@
         // Ensure all notes have the correct event listener for the context menu
         document.querySelectorAll('.note_item').forEach(note => {
             note.addEventListener('contextmenu', showContextMenu);
+        });
+
+        // Function to handle drag start
+        function handleDragStart(event) {
+            currentNote = event.target.closest('.note_item');
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/html', currentNote.outerHTML);
+        }
+
+        // Function to handle drag over
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            const targetNote = event.target.closest('.note_item');
+            if (targetNote && targetNote !== currentNote) {
+                targetNote.parentNode.insertBefore(currentNote, targetNote.nextSibling);
+            }
+        }
+
+        // Function to handle drop
+        function handleDrop(event) {
+            event.stopPropagation();
+            const notesList = document.getElementById('notes-list');
+            const updatedOrder = Array.from(notesList.children).map((note, index) => ({
+                id: note.getAttribute('data-id'),
+                order: index + 1
+            }));
+
+            fetch('/update_order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ order: updatedOrder })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Order updated successfully');
+                } else {
+                    console.error('Error updating order:', data);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        // Attach drag and drop event listeners to notes
+        document.querySelectorAll('.note_item').forEach(note => {
+            note.setAttribute('draggable', true);
+            note.addEventListener('dragstart', handleDragStart);
+            note.addEventListener('dragover', handleDragOver);
+            note.addEventListener('drop', handleDrop);
         });
     </script>    
 </body>
