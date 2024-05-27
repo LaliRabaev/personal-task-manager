@@ -41,12 +41,16 @@ ul {
     overflow-y: auto;
 }
 
-li.note-item {
+li {
     padding: 10px;
     background-color: #58595c;
     margin-bottom: 10px;
     border-radius: 5px;
     position: relative;
+  }
+
+li:hover {
+    background-color: #909299;
 }
 
 .input-container {
