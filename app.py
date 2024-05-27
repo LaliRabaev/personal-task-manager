@@ -61,6 +61,16 @@ def delete_note(note_id):
         return jsonify(success=True)
     return jsonify(success=False)
 
+@app.route('/star/<int:note_id>', methods=['POST'])
+def star_note(note_id):
+    note = Notes.query.get(note_id)
+    if note:
+        data = request.get_json()
+        note.is_starred = int(data['is_starred'])
+        db.session.commit()
+        return jsonify(success=True)
+    return jsonify(success=False), 404
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

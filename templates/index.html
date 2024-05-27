@@ -19,7 +19,7 @@
         </div>
         <ul id="notes-list">
             {% for note in notes %}
-                <li class="note_item" data-id="{{ note.id }}" oncontextmenu="showContextMenu(event)">
+                <li class="note_item" data-id="{{ note.id }}" data-starred="{{ '1' if note.is_starred else '0' }}" oncontextmenu="showContextMenu(event)">
                     {{ note.note_content }}
                 </li>
             {% endfor %}
@@ -41,6 +41,12 @@
         <ul>
             <li>
                 <div class="menu-item">
+                    <img src="{{ url_for('static', filename='icons/starred.png') }}" alt="Star" class="icon" id="star-icon">
+                    <span id="star-note">Star</span>
+                </div>
+            </li>
+            <li>
+                <div class="menu-item">
                     <img src="{{ url_for('static', filename='icons/edit.png') }}" alt="Edit" class="icon">
                     <span id="edit-note">Edit</span>
                 </div>
@@ -52,7 +58,7 @@
                 </div>
             </li>
         </ul>
-    </div>
+    </div>    
     <script>
         // Resizable sidebar
         const resizer = document.getElementById('resizer');
@@ -89,6 +95,18 @@
             currentNote = event.target.closest('.note_item'); // Get the closest note item element
             contextMenu.style.top = `${event.clientY}px`; // Position the context menu at the mouse click location
             contextMenu.style.left = `${event.clientX}px`;
+
+            // Update star/unstar option based on the current state
+            const starIcon = document.getElementById('star-icon');
+            const starText = document.getElementById('star-note');
+            if(currentNote.dataset.starred === "1"){
+                starIcon.src = "{{ url_for('static', filename='icons/starred.png') }}";
+                starText.textContent = 'Unstar';
+            } else {
+                starIcon.src = "{{ url_for('static', filename='icons/unstarred.png') }}";
+                starText.textContent = 'Star';
+            }
+            
             contextMenu.classList.add('active'); // Make the context menu visible
         }
 
@@ -183,6 +201,7 @@
                             noteElement.className = 'note_item';
                             noteElement.textContent = noteText;
                             noteElement.setAttribute('data-id', data.note_id);
+                            noteElement.setAttribute('data-starred', "0"); // Default to not starred
                             noteElement.addEventListener('contextmenu', showContextMenu);
                             document.getElementById('notes-list').appendChild(noteElement);
                             document.getElementById('note-input').value = '';
@@ -195,6 +214,34 @@
                         console.error('Error:', error);
                     });
                 }
+            }
+        });
+
+        // Handle star/unstar action
+        document.getElementById('star-note').addEventListener('click', function() {
+            if (currentNote) {
+                const noteId = currentNote.getAttribute('data-id');
+                const isStarred = currentNote.dataset.starred === "1" ? "0" : "1";
+                fetch(`/star/${noteId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ is_starred: isStarred })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        currentNote.dataset.starred = isStarred;
+                        contextMenu.classList.remove('active'); // Hide context menu after clicking star/unstar
+                    } else {
+                        alert(isStarred === "1" ? "Error starring note" : "Error unstarring note");
+                        console.error('Error starring/unstarring note:', data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
             }
         });
 
@@ -215,7 +262,6 @@
         document.querySelectorAll('.note_item').forEach(note => {
             note.addEventListener('contextmenu', showContextMenu);
         });
-
     </script>    
 </body>
 </html>
