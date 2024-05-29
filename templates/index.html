@@ -5,62 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Notes App</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <script src="https://kit.fontawesome.com/bad5cf5214.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="notes-sidebar" id="notes-sidebar">
-        <div class="resizer" id="resizer"></div>
-        <div class="header">
-            <h2>Notes</h2>
-            <div class="search-box">
-                <input type="text" id="search-input" placeholder="Search notes...">
-                <img src="{{ url_for('static', filename='icons/search.png') }}" alt="Search" class="search-icon">
+    <div class="container">
+        <div class="quotes-sidebar">
+            <img src="{{ url_for('static', filename='icons/quote-icon.png') }}" alt="Quotes" class="quotes-icon">
+            <div class="quote-container">
+                <p id="quote-text"></p>
+                <p id="quote-author"></p>
+                <button id="regenerate-quote"><img src="{{ url_for('static', filename='icons/regenerate.png') }}" alt="Regenerate Quote" class="regenerate-icon"></button>
             </div>
         </div>
-        <ul id="notes-list">
-            {% for note in notes %}
-                <li class="note_item" data-id="{{ note.id }}" data-starred="{{ '1' if note.is_starred else '0' }}" oncontextmenu="showContextMenu(event)">
-                    <div class="drag-handle">☰</div>
-                    <span class="note_content">{{ note.note_content }}</span>
-                    <span class="note_date">{{ note.updated_at }}</span>
-                </li>
-            {% endfor %}
-        </ul>
-        <form id="notes-form" action="{{ url_for('add_note') }}" method="POST">
-            <div class="input-container">
-                <input type="file" id="file-input" style="display: none;">
-                <label for="file-input" class="file-label">
-                    <img src="{{ url_for('static', filename='icons/upload_picture.png') }}" alt="Upload" class="icon">
-                </label>
-                <input type="text" name="note" id="note-input" placeholder="Type message">
-                <button type="submit">
-                    <img src="{{ url_for('static', filename='icons/send.png') }}" alt="Send" class="icon">
-                </button>
+        <div class="notes-sidebar" id="notes-sidebar">
+            <div class="resizer" id="resizer"></div>
+            <div class="header">
+                <h2>Notes</h2>
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Search notes...">
+                    <img src="{{ url_for('static', filename='icons/search.png') }}" alt="Search" class="search-icon">
+                </div>
             </div>
-        </form>
+            <ul id="notes-list">
+                {% for note in notes %}
+                    <li class="note_item" data-id="{{ note.id }}" data-starred="{{ '1' if note.is_starred else '0' }}" oncontextmenu="showContextMenu(event)">
+                        <div class="drag-handle">☰</div>
+                        <span class="note_content">{{ note.note_content }}</span>
+                        <span class="note_date">{{ note.updated_at }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+            <form id="notes-form" action="{{ url_for('add_note') }}" method="POST">
+                <div class="input-container">
+                    <input type="file" id="file-input" style="display: none;">
+                    <label for="file-input" class="file-label">
+                        <img src="{{ url_for('static', filename='icons/upload_picture.png') }}" alt="Upload" class="icon">
+                    </label>
+                    <input type="text" name="note" id="note-input" placeholder="Type message">
+                    <button type="submit">
+                        <img src="{{ url_for('static', filename='icons/send.png') }}" alt="Send" class="icon">
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div id="context-menu" class="context-menu">
+            <ul>
+                <li>
+                    <div class="menu-item">
+                        <img src="{{ url_for('static', filename='icons/starred.png') }}" alt="Star" class="icon" id="star-icon">
+                        <span id="star-note">Star</span>
+                    </div>
+                </li>
+                <li>
+                    <div class="menu-item">
+                        <img src="{{ url_for('static', filename='icons/edit.png') }}" alt="Edit" class="icon">
+                        <span id="edit-note">Edit</span>
+                    </div>
+                </li>
+                <li>
+                    <div class="menu-item">
+                        <img src="{{ url_for('static', filename='icons/delete.png') }}" alt="Delete" class="icon">
+                        <span id="delete-note">Delete</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
     </div>
-    <div id="context-menu" class="context-menu">
-        <ul>
-            <li>
-                <div class="menu-item">
-                    <img src="{{ url_for('static', filename='icons/starred.png') }}" alt="Star" class="icon" id="star-icon">
-                    <span id="star-note">Star</span>
-                </div>
-            </li>
-            <li>
-                <div class="menu-item">
-                    <img src="{{ url_for('static', filename='icons/edit.png') }}" alt="Edit" class="icon">
-                    <span id="edit-note">Edit</span>
-                </div>
-            </li>
-            <li>
-                <div class="menu-item">
-                    <img src="{{ url_for('static', filename='icons/delete.png') }}" alt="Delete" class="icon">
-                    <span id="delete-note">Delete</span>
-                </div>
-            </li>
-        </ul>
-    </div>    
     <script>
         // Resizable sidebar
         const resizer = document.getElementById('resizer');
@@ -318,6 +328,29 @@
             note.addEventListener('dragover', handleDragOver);
             note.addEventListener('drop', handleDrop);
         });
+
+        // Function to fetch and display a random quote
+        function fetchRandomQuote() {
+            fetch('/random_quote')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('quote-text').textContent = data.quote.toUpperCase();
+                document.getElementById('quote-author').textContent = `— ${data.author}`;
+            })
+            .catch(error => console.error('Error fetching quote:', error));
+        }
+
+        // Function to set the interval for fetching quotes every 3 hours
+        function startQuoteInterval() {
+            fetchRandomQuote(); // Fetch a quote immediately on page load
+            setInterval(fetchRandomQuote, 3 * 60 * 60 * 1000); // Fetch a quote every 3 hours
+        }
+
+        // Event listener for regenerate button
+        document.getElementById('regenerate-quote').addEventListener('click', fetchRandomQuote);
+
+        // Start the quote interval when the page loads
+        window.onload = startQuoteInterval;
     </script>    
 </body>
 </html>

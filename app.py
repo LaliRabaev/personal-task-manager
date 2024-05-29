@@ -1,8 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
+import random
 
 load_dotenv()
 
@@ -25,6 +26,12 @@ class Notes(db.Model):
     tag = db.Column(db.String(255))
     status = db.Column(db.Enum('active', 'inactive'), default='active')
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+class Quotes(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    quote = db.Column(db.Text, nullable=False)
+    author = db.Column(db.String(255))
+    status = db.Column(db.Enum('active', 'inactive'), default='active')
 
 @app.route('/')
 def index():
@@ -80,6 +87,17 @@ def update_order():
             note.order = item['order']
     db.session.commit()
     return jsonify(success=True)
+
+@app.route('/random_quote')
+def random_quote():
+    quotes = Quotes.query.filter_by(status="active").all()
+    if quotes:
+        quote = random.choice(quotes)
+        return jsonify({
+            'quote': quote.quote,
+            'author': quote.author
+        })
+    return jsonify({'quote': '', 'author': ''})
 
 if __name__ == '__main__':
     with app.app_context():

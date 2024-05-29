@@ -1,9 +1,84 @@
+.container {
+    display: flex;
+}
+
 body {
-    font-family: Arial, sans-serif;
-    background-color: #2C2F33;
+    font-family: 'Josefin Sans', sans-serif;
+    font-weight: 400; /* Regular */
+    background-color: #181820;
     color: #FFFFFF;
     margin: 0;
     padding: 0;
+}
+
+.quotes-sidebar {
+    width: 40%;
+    padding: 10px 20px;
+    margin: 20px auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 5px;
+    background-color: rgb(255,255,255, 3%);
+    border: 1px solid rgba(255, 255, 255, 7%);
+    -webkit-background-clip: padding-box;
+    background-clip: padding-box;
+}
+
+.quote-container {
+    text-align: center;
+    position: relative;
+    width: 100%;
+}
+
+.quotes-icon {
+    position: absolute;
+    left: 28.5%;
+    top: 15px;
+    width: 32px;
+    height: 24px;
+}
+
+#quote-text {
+    font-size: 1em;
+    color: white;
+    margin: 5px auto;
+    line-height: 120%;
+    font-style: italic;
+    font-weight: 700; /* Bold */
+    letter-spacing: 1px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    max-width: 90%;
+}
+
+#quote-author {
+    font-size: 1em;
+    color: #FFFFFF;
+    opacity: 60%;
+    margin: 0 auto 5px auto;
+}
+
+#regenerate-quote {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 8px;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#regenerate-quote:hover {
+    background-color: #181820;
+}
+
+.regenerate-icon {
+    width: 15px;
+    height: 15px;
 }
 
 .notes-sidebar {
@@ -15,8 +90,8 @@ body {
     right: 0;
     top: 0;
     height: 100%;
-    background-color: #23272A;
-    box-shadow: -2px 0 5px rgba(0,0,0,0.5);
+    background-color: rgb(255,255,255, 3%);
+    border: 1px solid rgba(255, 255, 255, 7%);
     overflow: auto;
     display: flex;
     flex-direction: column;
@@ -159,7 +234,7 @@ button {
     display: grid;
     justify-content: start;
     border-radius: 5px;
-    background-color: #58595c;
+    background-color: rgba(168, 168, 168, 0.15);
     margin-bottom: 10px;
     grid-template-columns: 30px 200px;
     grid-template-rows: auto;
@@ -190,4 +265,19 @@ button {
     grid-area: order;
     opacity: 0.8;
     align-self: center;
+}
+
+/* ScrollBar */
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #909299; /* Change this to your preferred scrollbar color */
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
 }
