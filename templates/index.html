@@ -59,7 +59,7 @@
                         {{ group.name|upper }} 
                         <span class="task-count">{{ group.tasks|length }}</span>
                     </h3>
-                    <div class="tasks" data-group-id="{{ group.id }}">
+                    <div class="tasks {% if group.status == 'collapsed' %}hidden{% endif %}" data-group-id="{{ group.id }}">
                         <!-- Tasks will be dynamically inserted here -->
                     </div>
                 </div>

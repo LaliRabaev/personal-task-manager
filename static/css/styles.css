@@ -306,10 +306,21 @@ button {
     margin-left: 10px;
 }
 
+.group-title {
+    cursor: pointer;
+}
+
 .tasks {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    overflow: hidden;
+}
+
+.tasks.collapsed {
+    max-height: 0;
+    opacity: 0;
 }
 
 .task {
@@ -327,7 +338,9 @@ button {
 
 .task .description {
     font-size: 14px;
-    margin: 5px;
+    color: #FFFFFF;
+    opacity: 70%;
+    margin: 10px 10px 0 0;
 }
 
 .task .deadline {
@@ -368,6 +381,12 @@ button {
     display: flex;
     flex-direction: column;
     align-items: center;
+    font-size: 10px;
+    margin-top: 5px;
+}
+
+.task-metadata {
+    width: 30%;
 }
 
 .task-body {
@@ -385,14 +404,15 @@ button {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+    align-items: center;
     width: 100%;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
 }
 
 .task-card-icon {
     width: 20px;
     height: 20px;
-    margin-bottom: 5px;
+    margin-bottom: 2px;
 }
 
 .task-header-divider {
@@ -401,12 +421,49 @@ button {
     background-color: white;
     opacity: 10%;
     border-radius: 5px;
+    margin: 0;
 }
 
 .status-dropdown {
-    font-weight: bold;
+    color: inherit;
+    background-color: inherit;
+    border: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    font-family: 'Josefin Sans', sans-serif;
+    outline: none;
+    padding: 5px;
+    border-radius: 3px;
 }
+
 .status-dropdown option {
     color: inherit;
-    font-weight: bold;
+    background-color: inherit;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    padding: 5px;
+}
+
+/* Override the default focus and hover styles */
+.status-dropdown option:hover,
+.status-dropdown option:focus {
+    /* background-color: inherit !important;
+    color: inherit !important; */
+    cursor: pointer;
+    outline: none;
+    background-color: none;
+}
+
+/* Remove the default blue background on select hover */
+.status-dropdown:hover,
+.status-dropdown:focus {
+    outline: none;
+    background-color: none;
+}
+
+.hidden {
+    display: none;
 }

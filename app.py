@@ -124,7 +124,6 @@ def get_tasks():
         })
     return jsonify(task_list)
 
-
 @app.route('/update_task_status/<int:task_id>', methods=['POST'])
 def update_task_status(task_id):
     task = Tasks.query.get(task_id)
@@ -133,6 +132,16 @@ def update_task_status(task_id):
         task.status_id = new_status_id
         new_group_id = TaskStatuses.query.get(new_status_id).group_id
         task.group_id = new_group_id
+        db.session.commit()
+        return jsonify(success=True, new_group_id=new_group_id)
+    return jsonify(success=False)
+
+@app.route('/update_group_status/<int:group_id>', methods=['POST'])
+def update_group_status(group_id):
+    group = TaskGroups.query.get(group_id)
+    if group:
+        new_status = request.json.get('status')
+        group.status = new_status
         db.session.commit()
         return jsonify(success=True)
     return jsonify(success=False)
@@ -167,6 +176,16 @@ def add_task_step():
     db.session.add(new_step)
     db.session.commit()
     return jsonify({'success': True, 'step_id': new_step.id})
+
+@app.route('/toggle_group_status/<int:group_id>', methods=['POST'])
+def toggle_group_status(group_id):
+    group = TaskGroups.query.get(group_id)
+    if group:
+        new_status = request.json.get('status')
+        group.status = new_status
+        db.session.commit()
+        return jsonify(success=True)
+    return jsonify(success=False), 404
 
 if __name__ == '__main__':
     with app.app_context():
