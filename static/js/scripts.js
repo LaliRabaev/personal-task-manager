@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="status">
                     <select class="status-dropdown" data-task-id="${task.id}">
                         ${task.statuses.map(status => `
-                            <option value="${status.id}" style="color: #${status.color_hex}" ${status.id === task.status.id ? 'selected' : ''}>
+                            <option value="${status.id}" data-color="${status.color_hex}" style="color: #${status.color_hex}; background-color: rgba(${hexToRgb(status.color_hex)}, 0.3)" ${status.id === task.status.id ? 'selected' : ''}>
                                 ${status.name}
                             </option>
                         `).join('')}
@@ -340,14 +340,90 @@ document.addEventListener('DOMContentLoaded', function () {
         return taskElement;
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.status-dropdown option').forEach(option => {
+    // Function to toggle group visibility
+    function toggleGroupVisibility(groupId) {
+        const groupElement = document.querySelector(`.task-group[data-group-id="${groupId}"]`);
+        const tasksElement = groupElement.querySelector('.tasks');
+
+        // Toggle the visibility in the UI
+        tasksElement.classList.toggle('hidden');
+
+        // Update the status in the database
+        const newStatus = tasksElement.classList.contains('hidden') ? 'collapsed' : 'opened';
+        fetch(`/update_group_status/${groupId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: newStatus }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Error updating group status');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Event listener for group title click
+    document.addEventListener('click', function (event) {
+        if (event.target.classList.contains('group-title')) {
+            const groupId = event.target.closest('.task-group').dataset.groupId;
+            toggleGroupVisibility(groupId);
+        }
+    });
+
+    // Apply initial colors and event listeners
+    function applyInitialStyles() {
+        document.querySelectorAll('.status-dropdown').forEach(dropdown => {
+            // Apply initial colors
+            applyOptionColors(dropdown);
+
+            // Update colors on change
+            dropdown.addEventListener('change', function () {
+                applySelectedOptionColor(dropdown);
+            });
+
+            // Apply colors to options on open
+            dropdown.addEventListener('mousedown', function () {
+                applyOptionColors(dropdown);
+            });
+        });
+    }
+
+    // Apply option colors
+    function applyOptionColors(dropdown) {
+        dropdown.querySelectorAll('option').forEach(option => {
             const color = option.getAttribute('data-color');
             if (color) {
                 option.style.color = `#${color}`;
+                option.style.backgroundColor = `rgba(${hexToRgb(color)}, 0.3)`;
             }
         });
-    });
+    }
+
+    // Apply selected option color
+    function applySelectedOptionColor(dropdown) {
+        const selectedOption = dropdown.options[dropdown.selectedIndex];
+        const color = selectedOption.getAttribute('data-color');
+        if (color) {
+            dropdown.style.color = `#${color}`;
+            dropdown.style.backgroundColor = `rgba(${hexToRgb(color)}, 0.3)`;
+        } else {
+            dropdown.style.color = '';
+            dropdown.style.backgroundColor = '';
+        }
+    }
+
+    // Convert hex to RGB
+    function hexToRgb(hex) {
+        let bigint = parseInt(hex, 16);
+        let r = (bigint >> 16) & 255;
+        let g = (bigint >> 8) & 255;
+        let b = bigint & 255;
+        return `${r},${g},${b}`;
+    }
 
     // Function to update task status and group
     function updateTaskStatus(taskId, newStatusId) {
@@ -380,4 +456,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Fetch tasks on page load
     fetchTasks();
+    applyInitialStyles();
 });
