@@ -19,74 +19,90 @@ class Quotes(db.Model):
     author = db.Column(db.String(255))
     status = db.Column(db.Enum('active', 'inactive'), default='active')
 
-class Task(db.Model):
+class Tasks(db.Model):
+    __tablename__ = 'tasks'
     id = db.Column(db.Integer, primary_key=True)
     order = db.Column(db.Integer)
-    group_id = db.Column(db.Integer, db.ForeignKey('task_group.id'))
+    group_id = db.Column(db.Integer, db.ForeignKey('task_groups.id'))
     title = db.Column(db.String(255))
     description = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    tag_id = db.Column(db.Integer, db.ForeignKey('task_tag.id'))
+    tag_id = db.Column(db.Integer)
     urgency_id = db.Column(db.Integer, db.ForeignKey('task_urgency.id'))
     effort_id = db.Column(db.Integer, db.ForeignKey('task_effort.id'))
-    status_id = db.Column(db.Integer, db.ForeignKey('task_status.id'))
+    status_id = db.Column(db.Integer, db.ForeignKey('task_statuses.id'))
     deadline = db.Column(db.DateTime)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    steps = db.relationship('TaskStep', backref='task', lazy=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class TaskStatus(db.Model):
+    group = db.relationship('TaskGroups', back_populates='tasks')
+    status = db.relationship('TaskStatuses', back_populates='tasks')
+    urgency = db.relationship('TaskUrgency')
+    effort = db.relationship('TaskEffort')
+
+class TaskStatuses(db.Model):
+    __tablename__ = 'task_statuses'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     status = db.Column(db.Enum('active', 'inactive'), default='active')
     is_closing = db.Column(db.Boolean, default=False)
     color_hex = db.Column(db.String(7))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    group_id = db.Column(db.Integer, db.ForeignKey('task_group.id'))
+    group_id = db.Column(db.Integer, db.ForeignKey('task_groups.id'))
+
+    tasks = db.relationship('Tasks', back_populates='status')
 
 class TaskUrgency(db.Model):
+    __tablename__ = 'task_urgency'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     color_hex = db.Column(db.String(7))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    tasks = db.relationship('Tasks', back_populates='urgency')
 
 class TaskEffort(db.Model):
+    __tablename__ = 'task_effort'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     color_hex = db.Column(db.String(7))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class TaskGroup(db.Model):
+    tasks = db.relationship('Tasks', back_populates='effort')
+
+class TaskGroups(db.Model):
+    __tablename__ = 'task_groups'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     order = db.Column(db.Integer)
     color_hex = db.Column(db.String(7))
     status = db.Column(db.Enum('opened', 'collapsed'), default='opened')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    tasks = db.relationship('Task', backref='group', lazy=True)
 
-class TaskUpdate(db.Model):
+    tasks = db.relationship('Tasks', back_populates='group')
+
+class TaskUpdates(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    task_id = db.Column(db.Integer, db.ForeignKey('task.id'))
+    task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'))
     content = db.Column(db.Text)
     status = db.Column(db.Enum('active', 'inactive'), default='active')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-class TaskTag(db.Model):
+class TaskTags(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     color_hex = db.Column(db.String(7))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class TaskDependency(db.Model):
+class TaskDependencies(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    task_id = db.Column(db.Integer, db.ForeignKey('task.id'))
-    depends_on_task_id = db.Column(db.Integer, db.ForeignKey('task.id'))
+    task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'))
+    depends_on_task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class TaskStep(db.Model):
+class TaskSteps(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    task_id = db.Column(db.Integer, db.ForeignKey('task.id'))
+    task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'))
     title = db.Column(db.String(255))
     description = db.Column(db.Text)
     status = db.Column(db.Enum('pending', 'in_progress', 'completed'), default='pending')
