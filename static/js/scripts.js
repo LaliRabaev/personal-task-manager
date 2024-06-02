@@ -294,6 +294,72 @@ document.getElementById('regenerate-quote').addEventListener('click', fetchRando
 window.onload = startQuoteInterval;
 
 document.addEventListener('DOMContentLoaded', function () {
+    const addTaskButton = document.getElementById('add-task-button');
+    const taskModal = document.getElementById('task-modal');
+    const closeModalButton = document.querySelector('.modal-close');
+    const taskForm = document.getElementById('task-form');
+
+    if (addTaskButton) {
+        addTaskButton.addEventListener('click', function() {
+            taskModal.style.display = 'block';
+        });
+    }
+
+    if (closeModalButton) {
+        closeModalButton.addEventListener('click', function() {
+            taskModal.style.display = 'none';
+        });
+    }
+
+    if (taskForm) {
+        taskForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const title = document.getElementById('title').value.trim();
+            const description = document.getElementById('description').value.trim();
+            const deadline = document.getElementById('deadline').value;
+            const urgencyId = document.getElementById('urgency_id').value;
+            const effortId = document.getElementById('effort_id').value;
+
+            if (!title || !description || !deadline || !urgencyId || !effortId) {
+                alert('Please fill out all required fields.');
+                return;
+            }
+
+            const data = {
+                title: title,
+                description: description,
+                deadline: deadline,
+                urgency_id: urgencyId,
+                effort_id: effortId,
+                status_id: 1 // Assuming 'backlog' status has id 1
+            };
+
+            console.log("Data being sent to server:", data); // Log the data being sent to the server
+
+            fetch('/add_task', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => {
+                console.log("Response received:", response);
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    console.log("Task added successfully:", data);
+                    taskModal.style.display = 'none';
+                    fetchTasks(); // Refresh tasks
+                } else {
+                    console.error('Error adding task:', data.error);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    }
+
     // Function to fetch and display tasks
     function fetchTasks() {
         fetch('/tasks')
@@ -497,66 +563,6 @@ document.addEventListener('DOMContentLoaded', function () {
         let g = (bigint >> 8) & 255;
         let b = bigint & 255;
         return `${r},${g},${b}`;
-    }
-
-    const addTaskButton = document.getElementById('add-task-button');
-    const taskModal = document.getElementById('task-modal');
-    const closeModalButton = document.querySelector('.modal-close');
-    const taskForm = document.getElementById('task-form');
-
-    if (addTaskButton) {
-        addTaskButton.addEventListener('click', function() {
-            taskModal.style.display = 'block';
-        });
-    }
-
-    if (closeModalButton) {
-        closeModalButton.addEventListener('click', function() {
-            taskModal.style.display = 'none';
-        });
-    }
-
-    if (taskForm) {
-        taskForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-            const title = document.getElementById('title').value.trim();
-            const description = document.getElementById('description').value.trim();
-            const deadline = document.getElementById('deadline').value;
-            const urgencyId = document.getElementById('urgency_id').value;
-            const effortId = document.getElementById('effort_id').value;
-
-            if (!title || !description || !deadline || !urgencyId || !effortId) {
-                alert('Please fill out all required fields.');
-                return;
-            }
-
-            const data = {
-                title: title,
-                description: description,
-                deadline: deadline,
-                urgency_id: urgencyId,
-                effort_id: effortId,
-                status_id: 1 // Assuming 'backlog' status has id 1
-            };
-
-            fetch('/add_task', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    taskModal.style.display = 'none';
-                    fetchTasks(); // Refresh tasks
-                } else {
-                    console.error('Error adding task:', data.error);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        });
     }
 
     // Fetch tasks on page load

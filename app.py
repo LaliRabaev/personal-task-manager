@@ -152,26 +152,45 @@ def update_group_status(group_id):
 def add_task():
     try:
         data = request.get_json()
-        print("Received data:", data)
+        print("Received data:", data)  # Log the received data
+
+        # Check if data is None
+        if data is None:
+            raise ValueError("No data received")
+
+        # Check for required fields
+        required_fields = ['title', 'description', 'deadline', 'urgency_id', 'effort_id']
+        for field in required_fields:
+            if field not in data:
+                raise ValueError(f"Missing required field: {field}")
+
+        # Set default values for fields that may not be provided
+        order = data.get('order', 1)  # Default order to 1 if not provided
+        group_id = data.get('group_id', 1)  # Default group_id to 1 if not provided
+        tag_id = data.get('tag_id', 1)  # Default tag_id to 1 (Placeholder)
+
+        # Convert deadline to datetime
+        deadline = datetime.strptime(data['deadline'], '%Y-%m-%dT%H:%M')
 
         new_task = Tasks(
-            order=data.get('order', 1),
-            group_id=data.get('group_id', 1),
+            order=order,
+            group_id=group_id,
             title=data['title'],
             description=data['description'],
-            tag_id=data.get('tag_id', 1),
+            tag_id=tag_id,
             urgency_id=data['urgency_id'],
             effort_id=data['effort_id'],
-            status_id=1,  # Default to 'backlog' status (assumed to be 1)
-            deadline=datetime.strptime(data['deadline'], '%Y-%m-%dT%H:%M'),
+            status_id=1,  # Assuming 'backlog' status has id 1
+            deadline=deadline,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
         db.session.add(new_task)
         db.session.commit()
+        print("Task added successfully")
         return jsonify({'success': True, 'task_id': new_task.id})
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error: {e}")  # Log the error for debugging
         return jsonify({'success': False, 'error': str(e)}), 400
 
 @app.route('/add_task_step', methods=['POST'])
