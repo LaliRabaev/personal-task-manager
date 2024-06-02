@@ -1,5 +1,7 @@
 .container {
     display: flex;
+    flex-direction: column;
+    align-items: left;
 }
 
 body {
@@ -274,10 +276,267 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: #909299; /* Change this to your preferred scrollbar color */
+    background-color: #909299;
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background-color: #555;
+}
+
+.task-groups {
+    width: 80%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.task-group h3 {
+    color: #FFF;
+    display: flex;
+    align-items: center;
+}
+
+.task-group .task-count {
+    border-radius: 4px;
+    padding: 5px 10px;
+    color: white;
+    border: 2px solid #ccc;
+    margin-left: 10px;
+}
+
+.group-title {
+    cursor: pointer;
+}
+
+.tasks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    overflow: hidden;
+}
+
+.tasks.collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+
+.task {
+    background-color: rgba(168, 168, 168, 0.15);
+    color: #FFF;
+    padding: 10px;
+    border-radius: 5px;
+    width: 200px;
+    position: relative;
+}
+
+.task .title {
+    font-weight: bold;
+}
+
+.task .description {
+    font-size: 14px;
+    color: #FFFFFF;
+    opacity: 70%;
+    margin: 10px 10px 0 0;
+    width: 70%;
+}
+
+.task .deadline {
+    font-size: 12px;
+    color: #999;
+    margin-top: 10px;
+}
+
+.task .progress-bar {
+    margin-top: 10px;
+}
+
+#add-task-button {
+    background-color: #7289DA;
+    color: #FFF;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 24px;
+    margin-top: 10px;
+}
+
+.group-color {
+    width: 10px;
+    height: 40px;
+    display: inline-block;
+    margin-right: 10px;
+    border-radius: 3px;
+    top: 3px;
+}
+
+.task-rating {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 10px;
+    margin-top: 5px;
+}
+
+.task-metadata {
+    width: 30%;
+}
+
+.task-body {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.task-icon-label{
+    margin: 2px 0 5px 0;
+    font-size: 8px;
+}
+
+.task-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.task-card-icon {
+    width: 20px;
+    height: 20px;
+    margin-bottom: 2px;
+}
+
+.task-header-divider {
+    height: 1px;
+    border: none;
+    background-color: white;
+    opacity: 10%;
+    border-radius: 5px;
+    margin: 0;
+}
+
+.status-dropdown {
+    color: inherit;
+    background-color: inherit;
+    border: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    font-family: 'Josefin Sans', sans-serif;
+    outline: none;
+    padding: 5px;
+    border-radius: 3px;
+}
+
+.status-dropdown option {
+    color: inherit;
+    background-color: inherit;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    padding: 5px;
+}
+
+/* Override the default focus and hover styles */
+.status-dropdown option:hover,
+.status-dropdown option:focus {
+    /* background-color: inherit !important;
+    color: inherit !important; */
+    cursor: pointer;
+    outline: none;
+    background-color: none;
+}
+
+/* Remove the default blue background on select hover */
+.status-dropdown:hover,
+.status-dropdown:focus {
+    outline: none;
+    background-color: none;
+}
+
+.hidden {
+    display: none;
+}
+
+/* General Modal Styles */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.4); 
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto; 
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; 
+    max-width: 500px;
+    border-radius: 10px;
+}
+
+.modal-close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.modal-close:hover,
+.modal-close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Form Styles */
+#create-task-form {
+    display: flex;
+    flex-direction: column;
+}
+
+#create-task-form label {
+    margin-top: 10px;
+}
+
+#create-task-form input[type="text"],
+#create-task-form select,
+#create-task-form input[type="datetime-local"] {
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    color: 303030;
+}
+
+.create-task-button {
+    padding: 10px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.create-task-button:hover {
+    background-color: #218838;
 }
