@@ -29,12 +29,27 @@ let isEditMode = false;
 
 // Function to show the context menu
 function showContextMenu(event) {
-    event.preventDefault(); // Prevent the default context menu from appearing
-    currentNote = event.target.closest('.note_item'); // Get the closest note item element
-    contextMenu.style.top = `${event.clientY}px`; // Position the context menu at the mouse click location
-    contextMenu.style.left = `${event.clientX}px`;
+    event.preventDefault();
+    currentNote = event.target.closest('.note_item');
+    const menuHeight = contextMenu.offsetHeight;
+    const menuWidth = contextMenu.offsetWidth;
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    
+    let top = event.clientY;
+    let left = event.clientX;
 
-    // Update star/unstar option based on the current state
+    if (top + menuHeight > viewportHeight) {
+        top -= menuHeight;
+    }
+
+    if (left + menuWidth > viewportWidth) {
+        left -= menuWidth;
+    }
+
+    contextMenu.style.top = `${top}px`;
+    contextMenu.style.left = `${left}px`;
+
     const starIcon = document.getElementById('star-icon');
     const starText = document.getElementById('star-note');
     if(currentNote.dataset.starred === "1"){
@@ -45,7 +60,7 @@ function showContextMenu(event) {
         starText.textContent = 'Star';
     }
     
-    contextMenu.classList.add('active'); // Make the context menu visible
+    contextMenu.classList.add('active');
 }
 
 // Event delegation for context menu actions
@@ -282,35 +297,35 @@ document.addEventListener('DOMContentLoaded', function () {
     // Function to fetch and display tasks
     function fetchTasks() {
         fetch('/tasks')
-        .then(response => response.json())
-        .then(data => {
-            const taskGroups = document.querySelectorAll('.tasks');
-            taskGroups.forEach(group => group.innerHTML = ''); // Clear current tasks
-            data.forEach(task => {
-                const taskElement = createTaskElement(task);
-                const groupElement = document.querySelector(`.tasks[data-group-id="${task.group_id}"]`);
-                if (groupElement) {
-                    groupElement.appendChild(taskElement);
-                }
-            });
-            updateTaskCounts();
-            // Apply initial colors
-            document.querySelectorAll('.status-dropdown').forEach(dropdown => {
-                applyOptionColors(dropdown);
-                applySelectedOptionColor(dropdown);
-
-                // Update colors on change
-                dropdown.addEventListener('change', function () {
-                    applySelectedOptionColor(dropdown);
+            .then(response => response.json())
+            .then(data => {
+                const taskGroups = document.querySelectorAll('.tasks');
+                taskGroups.forEach(group => group.innerHTML = ''); // Clear current tasks
+                data.forEach(task => {
+                    const taskElement = createTaskElement(task);
+                    const groupElement = document.querySelector(`.tasks[data-group-id="${task.group_id}"]`);
+                    if (groupElement) {
+                        groupElement.appendChild(taskElement);
+                    }
                 });
-
-                // Apply colors to options on open
-                dropdown.addEventListener('mousedown', function () {
+                updateTaskCounts();
+                // Apply initial colors
+                document.querySelectorAll('.status-dropdown').forEach(dropdown => {
                     applyOptionColors(dropdown);
+                    applySelectedOptionColor(dropdown);
+
+                    // Update colors on change
+                    dropdown.addEventListener('change', function () {
+                        applySelectedOptionColor(dropdown);
+                    });
+
+                    // Apply colors to options on open
+                    dropdown.addEventListener('mousedown', function () {
+                        applyOptionColors(dropdown);
+                    });
                 });
-            });
-        })
-        .catch(error => console.error('Error fetching tasks:', error));
+            })
+            .catch(error => console.error('Error fetching tasks:', error));
     }
 
     // Function to create a task element
@@ -357,6 +372,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             </div>
         `;
+        // Add necessary event listeners
+        const statusDropdown = taskElement.querySelector('.status-dropdown');
+        statusDropdown.addEventListener('change', function() {
+            updateTaskStatus(task.id, statusDropdown.value);
+        });
+        applyOptionColors(statusDropdown);
+        applySelectedOptionColor(statusDropdown);
         return taskElement;
     }
 
@@ -369,21 +391,21 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             body: JSON.stringify({ status_id: newStatusId }),
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const taskElement = document.querySelector(`.task[data-id="${taskId}"]`);
-                const oldGroupElement = taskElement.closest('.tasks');
-                const newGroupId = data.new_group_id;
-                const newGroupElement = document.querySelector(`.tasks[data-group-id="${newGroupId}"]`);
-                oldGroupElement.removeChild(taskElement);
-                newGroupElement.appendChild(taskElement);
-                updateTaskCounts(); // Update task counts
-            } else {
-                console.error('Error updating task status');
-            }
-        })
-        .catch(error => console.error('Error:', error));
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const taskElement = document.querySelector(`.task[data-id="${taskId}"]`);
+                    const oldGroupElement = taskElement.closest('.tasks');
+                    const newGroupId = data.new_group_id;
+                    const newGroupElement = document.querySelector(`.tasks[data-group-id="${newGroupId}"]`);
+                    oldGroupElement.removeChild(taskElement);
+                    newGroupElement.appendChild(taskElement);
+                    updateTaskCounts(); // Update task counts
+                } else {
+                    console.error('Error updating task status');
+                }
+            })
+            .catch(error => console.error('Error:', error));
     }
 
     // Function to update task counts for each group
@@ -412,22 +434,22 @@ document.addEventListener('DOMContentLoaded', function () {
             const currentStatus = groupTitleElement.dataset.status;
             const newStatus = currentStatus === 'opened' ? 'collapsed' : 'opened';
             groupTitleElement.dataset.status = newStatus;
-            fetch(`/toggle_group_status/${groupId}`, {
+            fetch(`/update_group_status/${groupId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ status: newStatus }),
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    tasksElement.style.display = newStatus === 'collapsed' ? 'none' : 'block';
-                } else {
-                    console.error('Error toggling group status');
-                }
-            })
-            .catch(error => console.error('Error:', error));
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        tasksElement.style.display = newStatus === 'collapsed' ? 'none' : 'block';
+                    } else {
+                        console.error('Error toggling group status');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
         }
     });
 
@@ -475,7 +497,67 @@ document.addEventListener('DOMContentLoaded', function () {
         let g = (bigint >> 8) & 255;
         let b = bigint & 255;
         return `${r},${g},${b}`;
-    }    
+    }
+
+    const addTaskButton = document.getElementById('add-task-button');
+    const taskModal = document.getElementById('task-modal');
+    const closeModalButton = document.querySelector('.modal-close');
+    const taskForm = document.getElementById('task-form');
+
+    if (addTaskButton) {
+        addTaskButton.addEventListener('click', function() {
+            taskModal.style.display = 'block';
+        });
+    }
+
+    if (closeModalButton) {
+        closeModalButton.addEventListener('click', function() {
+            taskModal.style.display = 'none';
+        });
+    }
+
+    if (taskForm) {
+        taskForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const title = document.getElementById('title').value.trim();
+            const description = document.getElementById('description').value.trim();
+            const deadline = document.getElementById('deadline').value;
+            const urgencyId = document.getElementById('urgency_id').value;
+            const effortId = document.getElementById('effort_id').value;
+
+            if (!title || !description || !deadline || !urgencyId || !effortId) {
+                alert('Please fill out all required fields.');
+                return;
+            }
+
+            const data = {
+                title: title,
+                description: description,
+                deadline: deadline,
+                urgency_id: urgencyId,
+                effort_id: effortId,
+                status_id: 1 // Assuming 'backlog' status has id 1
+            };
+
+            fetch('/add_task', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    taskModal.style.display = 'none';
+                    fetchTasks(); // Refresh tasks
+                } else {
+                    console.error('Error adding task:', data.error);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    }
 
     // Fetch tasks on page load
     fetchTasks();

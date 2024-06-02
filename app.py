@@ -22,12 +22,14 @@ def index():
     notes = Notes.query.filter_by(status='active').all()
     groups = TaskGroups.query.all()
     statuses = TaskStatuses.query.all()
+    urgencies = TaskUrgency.query.all()
+    efforts = TaskEffort.query.all()
     tasks = Tasks.query.all()
     for task in tasks:
         task.urgency = TaskUrgency.query.get(task.urgency_id)
         task.effort = TaskEffort.query.get(task.effort_id)
         task.status = TaskStatuses.query.get(task.status_id)
-    return render_template('index.html', notes=notes, groups=groups, tasks=tasks, statuses=statuses)
+    return render_template('index.html', notes=notes, groups=groups, tasks=tasks, statuses=statuses, urgencies=urgencies, efforts=efforts)
 
 @app.route('/add', methods=['POST'])
 def add_note():
@@ -148,21 +150,29 @@ def update_group_status(group_id):
 
 @app.route('/add_task', methods=['POST'])
 def add_task():
-    data = request.get_json()
-    new_task = Tasks(
-        order=data['order'],
-        group_id=data['group_id'],
-        title=data['title'],
-        description=data['description'],
-        tag_id=data['tag_id'],
-        urgency_id=data['urgency_id'],
-        effort_id=data['effort_id'],
-        status_id=data['status_id'],
-        deadline=datetime.strptime(data['deadline'], '%Y-%m-%d %H:%M:%S')
-    )
-    db.session.add(new_task)
-    db.session.commit()
-    return jsonify({'success': True, 'task_id': new_task.id})
+    try:
+        data = request.get_json()
+        print("Received data:", data)
+
+        new_task = Tasks(
+            order=data.get('order', 1),
+            group_id=data.get('group_id', 1),
+            title=data['title'],
+            description=data['description'],
+            tag_id=data.get('tag_id', 1),
+            urgency_id=data['urgency_id'],
+            effort_id=data['effort_id'],
+            status_id=1,  # Default to 'backlog' status (assumed to be 1)
+            deadline=datetime.strptime(data['deadline'], '%Y-%m-%dT%H:%M'),
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        db.session.add(new_task)
+        db.session.commit()
+        return jsonify({'success': True, 'task_id': new_task.id})
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 @app.route('/add_task_step', methods=['POST'])
 def add_task_step():
