@@ -407,9 +407,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="status">
                     <div id="app-cover">
                         <div id="select-box-${task.id}">
-                            <div id="select-button" class="brd" data-selected-color="rgba(${hexToRgb(task.status.color_hex)}, 0.3)">
+                            <div id="select-button-${task.id}" class="brd" data-selected-color="rgba(${hexToRgb(task.status.color_hex)}, 0.3)" data-selected-text-color="#${task.status.color_hex}">
                                 <div id="selected-value-${task.id}">
-                                    <span>${task.status.name}</span>
+                                    <span class="selected-status">${task.status.name}</span>
                                 </div>
                             </div>
                             <div id="options-${task.id}" class="options">
@@ -454,20 +454,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Add event listeners for custom dropdown
                 const selectBox = taskElement.querySelector(`#select-box-${task.id}`);
+                const selectButton = taskElement.querySelector(`#select-button-${task.id}`);
                 const selectedValue = taskElement.querySelector(`#selected-value-${task.id}`);
                 const optionsContainer = taskElement.querySelector(`#options-${task.id}`);
+                const cardStatus = taskElement.querySelector(`#selected-value-${task.id} span`);
+                cardStatus.style.backgroundColor = `rgba(${hexToRgb(task.status.color_hex)}, 0.3)`;
+                cardStatus.style.color = `#${task.status.color_hex}`;
                 
                 selectedValue.addEventListener('click', () => {
                     optionsContainer.classList.toggle('active');
                 });
-        
+                
                 optionsContainer.querySelectorAll('.option').forEach(option => {
                     option.addEventListener('click', (event) => {
                         const newStatusId = event.currentTarget.dataset.statusId;
                         updateTaskStatus(task.id, newStatusId);
-                        selectedValue.textContent = event.currentTarget.querySelector('.label').textContent;
+                        selectedValue.querySelector('span').textContent = event.currentTarget.querySelector('.label').textContent;
+                        selectButton.style.backgroundColor = event.currentTarget.style.backgroundColor;
+                        selectButton.style.color = event.currentTarget.style.color;
+                        cardStatus.style.backgroundColor = event.currentTarget.style.backgroundColor;
+                        cardStatus.style.color = event.currentTarget.style.color;
                         optionsContainer.classList.remove('active');
                     });
+                });                
+                
+                window.addEventListener('click', function(event) {
+                    if (!selectBox.contains(event.target)) {
+                        optionsContainer.classList.remove('active');
+                    }
                 });
         
                 return taskElement;
