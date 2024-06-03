@@ -321,6 +321,7 @@ button {
 .tasks.collapsed {
     max-height: 0;
     opacity: 0;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
 }
 
 .task {
@@ -328,8 +329,10 @@ button {
     color: #FFF;
     padding: 10px;
     border-radius: 5px;
-    width: 200px;
+    width: 230px;
     position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
 .task .title {
@@ -424,29 +427,6 @@ button {
     margin: 0;
 }
 
-.status-dropdown {
-    color: inherit;
-    background-color: inherit;
-    border: none;
-    cursor: pointer;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    font-family: 'Josefin Sans', sans-serif;
-    outline: none;
-    padding: 5px;
-    border-radius: 3px;
-}
-
-.status-dropdown option {
-    color: inherit;
-    background-color: inherit;
-    border: none;
-    cursor: pointer;
-    outline: none;
-    padding: 5px;
-}
-
 /* Override the default focus and hover styles */
 .status-dropdown option:hover,
 .status-dropdown option:focus {
@@ -455,17 +435,6 @@ button {
     cursor: pointer;
     outline: none;
     background-color: none;
-}
-
-/* Remove the default blue background on select hover */
-.status-dropdown:hover,
-.status-dropdown:focus {
-    outline: none;
-    background-color: none;
-}
-
-.hidden {
-    display: none;
 }
 
 /* General Modal Styles */
@@ -482,7 +451,7 @@ button {
 }
 
 .modal-content {
-    background-color: #fefefe;
+    background-color: #181820;
     margin: 5% auto; 
     padding: 20px;
     border: 1px solid #888;
@@ -500,7 +469,7 @@ button {
 
 .modal-close:hover,
 .modal-close:focus {
-    color: black;
+    color: #ffffff;
     text-decoration: none;
     cursor: pointer;
 }
@@ -513,6 +482,8 @@ button {
 
 #create-task-form label {
     margin-top: 10px;
+    font-weight: bold;
+    color: #ffffff;
 }
 
 #create-task-form input[type="text"],
@@ -524,7 +495,8 @@ button {
     border: 1px solid #ccc;
     border-radius: 5px;
     font-size: 16px;
-    color: 303030;
+    color: #303030;
+    background-color: #ffffff;
 }
 
 .create-task-button {
@@ -539,4 +511,97 @@ button {
 
 .create-task-button:hover {
     background-color: #218838;
+}
+
+/* Custom Dropdown Styles */
+#app-cover {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+#options-view-button {
+    display: none;
+}
+
+#select-button {
+    position: relative;
+    width: 90px;
+    background-color: #2c3e50;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 5px 10px;
+    color: #ecf0f1;
+    font-size: 16px;
+}
+
+#selected-value {
+    display: inline-block;
+}
+
+.options {
+    position: absolute;
+    width: 100%;
+    background-color: #2c3e50;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    margin-top: 10px;
+    max-height: 100px; /* Set max height */
+    overflow-y: auto; /* Enable scrolling */
+    display: none;
+    z-index: 999;
+}
+
+.options::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.options.active {
+    display: block;
+}
+
+.option {
+    padding: 10px 5px;
+    cursor: pointer;
+    color: #ecf0f1;
+    text-align: center;
+    font-size: 16px;
+}
+
+.option:hover {
+    background-color: #34495e;
+}
+
+.option input[type="radio"] {
+    display: none;
+}
+
+.option .label {
+    display: inline-block;
+}
+
+.option .opt-val {
+    display: none;
+}
+
+#option-bg {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background: rgba(0,0,0,0.5);
+    border-radius: 5px;
+    z-index: -1;
+}
+
+/* Make the selected option visible */
+#select-button[data-selected-color] {
+    background-color: var(--selected-color);
+    color: var(--selected-text-color);
 }
