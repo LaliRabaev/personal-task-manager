@@ -216,6 +216,56 @@ def toggle_group_status(group_id):
         return jsonify(success=True)
     return jsonify(success=False), 404
 
+@app.route('/get_task/<int:task_id>', methods=['GET'])
+def get_task(task_id):
+    task = Tasks.query.get(task_id)
+    if task:
+        return jsonify({
+            'id': task.id,
+            'title': task.title,
+            'description': task.description,
+            'deadline': task.deadline.isoformat(),
+            'urgency_id': task.urgency_id,
+            'effort_id': task.effort_id,
+            'status': {
+                'id': task.status.id,
+                'name': task.status.name,
+                'color_hex': task.status.color_hex
+            }
+        })
+    return jsonify({'error': 'Task not found'}), 404
+
+@app.route('/edit_task/<int:task_id>', methods=['POST'])
+def edit_task(task_id):
+    task = Tasks.query.get_or_404(task_id)
+    data = request.json
+    task.title = data['title']
+    task.description = data['description']
+    task.deadline = datetime.strptime(data['deadline'], '%Y-%m-%d')
+    task.urgency_id = data['urgency_id']
+    task.effort_id = data['effort_id']
+    task.status_id = data['status_id']
+    db.session.commit()
+    return jsonify(success=True)
+
+@app.route('/urgencies', methods=['GET'])
+def get_urgencies():
+    urgencies = TaskUrgency.query.all()
+    urgency_list = [{'id': urgency.id, 'name': urgency.name} for urgency in urgencies]
+    return jsonify(urgency_list)
+
+@app.route('/efforts', methods=['GET'])
+def get_efforts():
+    efforts = TaskEffort.query.all()
+    effort_list = [{'id': effort.id, 'name': effort.name} for effort in efforts]
+    return jsonify(effort_list)
+
+@app.route('/statuses', methods=['GET'])
+def get_statuses():
+    statuses = TaskStatuses.query.all()
+    status_list = [{'id': status.id, 'name': status.name} for status in statuses]
+    return jsonify(status_list)
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

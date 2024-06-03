@@ -332,6 +332,7 @@ button {
     position: relative;
     display: flex;
     flex-direction: column;
+    cursor: pointer;
 }
 
 .task .title {
@@ -440,82 +441,6 @@ button {
     background-color: none;
 }
 
-/* General Modal Styles */
-.modal {
-    display: none; 
-    position: fixed; 
-    z-index: 1000; 
-    left: 0;
-    top: 0;
-    width: 100%; 
-    height: 100%; 
-    overflow: auto; 
-    background-color: rgba(0,0,0,0.4); 
-}
-
-.modal-content {
-    background-color: #181820;
-    margin: 5% auto; 
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%; 
-    max-width: 500px;
-    border-radius: 10px;
-}
-
-.modal-close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-}
-
-.modal-close:hover,
-.modal-close:focus {
-    color: #ffffff;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-/* Form Styles */
-#create-task-form {
-    display: flex;
-    flex-direction: column;
-}
-
-#create-task-form label {
-    margin-top: 10px;
-    font-weight: bold;
-    color: #ffffff;
-}
-
-#create-task-form input[type="text"],
-#create-task-form select,
-#create-task-form input[type="datetime-local"] {
-    padding: 10px;
-    margin-top: 5px;
-    margin-bottom: 15px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 16px;
-    color: #303030;
-    background-color: #ffffff;
-}
-
-.create-task-button {
-    padding: 10px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-.create-task-button:hover {
-    background-color: #218838;
-}
-
 /* Custom Dropdown Styles */
 #app-cover {
     position: relative;
@@ -560,7 +485,7 @@ button {
 }
 
 .option {
-    padding: 10px 5px;
+    padding: 7px 5px;
     cursor: pointer;
     color: #ecf0f1;
     text-align: center;
@@ -582,7 +507,7 @@ button {
 #option-bg {
     position: absolute;
     width: 100%;
-    height: 180%;
+    height: 150%;
     top: 0;
     left: 0;
     background: rgba(0,0,0,0.7);
@@ -590,8 +515,165 @@ button {
     z-index: -1;
 }
 
-/* Make the selected option visible */
 #select-button[data-selected-color] {
     background-color: var(--selected-color);
     color: var(--selected-text-color);
+}
+
+/* General modal styling */
+
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.4);
+    animation: modalopen 0.4s;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    border-radius: 10px;
+}
+
+.modal-content {
+    background-color: #181820;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; 
+    max-width: 500px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    animation: modalopen 0.4s;
+}
+
+@keyframes modalopen {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+
+/* Modal header */
+.modal-content h2 {
+    margin-top: 0;
+    font-family: 'Josefin Sans', sans-serif;
+    color: white;
+}
+
+/* Close button */
+.modal-close,
+.modal-close-edit {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.modal-close:hover,
+.modal-close-edit:hover,
+.modal-close:focus,
+.modal-close-edit:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Form styling */
+.modal-content form {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-content form div {
+    margin-bottom: 15px;
+}
+
+.modal-content label {
+    font-family: 'Josefin Sans', sans-serif;
+    font-size: 16px;
+    color: white;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="date"],
+.modal-content select,
+.modal-content textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-family: 'Josefin Sans', sans-serif;
+    font-size: 14px;
+}
+
+.modal-content button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Josefin Sans', sans-serif;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.modal-content button:hover {
+    background-color: #45a049;
+}
+
+
+.modal-close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.modal-close:hover,
+.modal-close:focus {
+    color: #ffffff;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Form Styles */
+#create-task-form {
+    display: flex;
+    flex-direction: column;
+}
+
+#create-task-form label {
+    margin-top: 10px;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+#create-task-form input[type="text"],
+#create-task-form select,
+#create-task-form input[type="datetime-local"] {
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    color: #ffffff;
+}
+
+.create-task-button {
+    padding: 10px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.create-task-button:hover {
+    background-color: #218838;
 }
