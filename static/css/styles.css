@@ -49,7 +49,6 @@ body {
     line-height: 120%;
     font-style: italic;
     font-weight: 700; /* Bold */
-    letter-spacing: 1px;
     word-wrap: break-word;
     white-space: pre-wrap;
     max-width: 90%;
@@ -321,6 +320,7 @@ button {
 .tasks.collapsed {
     max-height: 0;
     opacity: 0;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
 }
 
 .task {
@@ -328,8 +328,11 @@ button {
     color: #FFF;
     padding: 10px;
     border-radius: 5px;
-    width: 200px;
+    width: 230px;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
 }
 
 .task .title {
@@ -409,6 +412,10 @@ button {
     margin-bottom: 10px;
 }
 
+.status {
+    width: 100px;
+}
+
 .task-card-icon {
     width: 20px;
     height: 20px;
@@ -424,29 +431,6 @@ button {
     margin: 0;
 }
 
-.status-dropdown {
-    color: inherit;
-    background-color: inherit;
-    border: none;
-    cursor: pointer;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    font-family: 'Josefin Sans', sans-serif;
-    outline: none;
-    padding: 5px;
-    border-radius: 3px;
-}
-
-.status-dropdown option {
-    color: inherit;
-    background-color: inherit;
-    border: none;
-    cursor: pointer;
-    outline: none;
-    padding: 5px;
-}
-
 /* Override the default focus and hover styles */
 .status-dropdown option:hover,
 .status-dropdown option:focus {
@@ -457,18 +441,87 @@ button {
     background-color: none;
 }
 
-/* Remove the default blue background on select hover */
-.status-dropdown:hover,
-.status-dropdown:focus {
-    outline: none;
-    background-color: none;
+/* Custom Dropdown Styles */
+#app-cover {
+    position: relative;
+    display: inline-block;
+    width: 100%;
 }
 
-.hidden {
+#options-view-button {
     display: none;
 }
 
-/* General Modal Styles */
+.selected-status {
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    width: 80%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.options {
+    position: absolute;
+    width: 100%;
+    background-color: #2c3e50;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    margin-top: 10px;
+    max-height: 100px;
+    overflow-y: auto;
+    display: none;
+    z-index: 999;
+}
+
+.options::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.options.active {
+    display: block;
+}
+
+.option {
+    padding: 7px 5px;
+    cursor: pointer;
+    color: #ecf0f1;
+    text-align: center;
+    font-size: 16px;
+}
+
+.option input[type="radio"] {
+    display: none;
+}
+
+.option .label {
+    display: inline-block;
+}
+
+.option .opt-val {
+    display: none;
+}
+
+#option-bg {
+    position: absolute;
+    width: 100%;
+    height: 150%;
+    top: 0;
+    left: 0;
+    background: rgba(0,0,0,0.7);
+    border-radius: 5px;
+    z-index: -1;
+}
+
+#select-button[data-selected-color] {
+    background-color: var(--selected-color);
+    color: var(--selected-text-color);
+}
+
+/* General modal styling */
+
 .modal {
     display: none; 
     position: fixed; 
@@ -478,17 +531,82 @@ button {
     width: 100%; 
     height: 100%; 
     overflow: auto; 
-    background-color: rgba(0,0,0,0.4); 
+    background-color: rgba(0,0,0,0.4);
+    animation: modalopen 0.4s;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    border-radius: 10px;
 }
 
 .modal-content {
-    background-color: #fefefe;
-    margin: 5% auto; 
+    background-color: #181820;
+    margin: 15% auto;
     padding: 20px;
     border: 1px solid #888;
     width: 80%; 
     max-width: 500px;
     border-radius: 10px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    animation: modalopen 0.4s;
+}
+
+@keyframes modalopen {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+
+/* Modal header */
+.modal-content h2 {
+    margin-top: 0;
+    font-family: 'Josefin Sans', sans-serif;
+    color: white;
+}
+
+/* Close button */
+.modal-close,
+.modal-close-edit {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.modal-close:hover,
+.modal-close-edit:hover,
+.modal-close:focus,
+.modal-close-edit:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Form styling */
+.modal-content form {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-content form div {
+    margin-bottom: 15px;
+}
+
+.modal-content label {
+    font-family: 'Josefin Sans', sans-serif;
+    font-size: 16px;
+    color: white;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="date"],
+.modal-content select,
+.modal-content textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-family: 'Josefin Sans', sans-serif;
+    font-size: 14px;
 }
 
 .modal-close {
@@ -500,12 +618,11 @@ button {
 
 .modal-close:hover,
 .modal-close:focus {
-    color: black;
+    color: #ffffff;
     text-decoration: none;
     cursor: pointer;
 }
 
-/* Form Styles */
 #create-task-form {
     display: flex;
     flex-direction: column;
@@ -513,6 +630,8 @@ button {
 
 #create-task-form label {
     margin-top: 10px;
+    font-weight: bold;
+    color: #ffffff;
 }
 
 #create-task-form input[type="text"],
@@ -524,19 +643,46 @@ button {
     border: 1px solid #ccc;
     border-radius: 5px;
     font-size: 16px;
-    color: 303030;
+    color: black;
 }
 
-.create-task-button {
-    padding: 10px;
-    background-color: #28a745;
+.buttons-row {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.delete-task-button {
+    background-color: #f44336;
     color: white;
+    padding: 10px 20px;
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    font-family: 'Josefin Sans', sans-serif;
     font-size: 16px;
+    transition: background-color 0.3s;
+    margin-top: 10px;
 }
 
-.create-task-button:hover {
-    background-color: #218838;
+.delete-task-button:hover {
+    background-color: #d32f2f;
+}
+
+.primary-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Josefin Sans', sans-serif;
+    font-size: 16px;
+    transition: background-color 0.3s;
+    margin-top: 10px;
+}
+
+.primary-button :hover {
+    background-color: #45a049;
 }

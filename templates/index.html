@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Management App</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -55,30 +56,30 @@
                 <button id="add-task-button">+</button>
                 {% for group in groups %}
                 <div class="task-group" data-group-id="{{ group.id }}">
-                    <h3 class="group-title">
+                    <h3 class="group-title" data-status="{{ group.status }}">
                         <div class="group-color" style="background-color: #{{ group.color_hex }}"></div>
                         {{ group.name|upper }} 
                         <span class="task-count">{{ group.tasks|length }}</span>
                     </h3>
-                    <div class="tasks {% if group.status == 'collapsed' %}hidden{% endif %}" data-group-id="{{ group.id }}">
+                    <div class="tasks {% if group.status == 'collapsed' %}collapsed{% endif %}" data-group-id="{{ group.id }}">
                         <!-- Tasks will be dynamically inserted here -->
                     </div>
                 </div>
                 {% endfor %}
-            </div>
+            </div>            
             <div id="task-modal" class="modal">
                 <div class="modal-content">
                     <span class="modal-close">&times;</span>
                     <form id="create-task-form">
                         <label for="title">Title</label>
                         <input type="text" id="title" name="title" required>
-                        
+            
                         <label for="description">Description</label>
                         <input type="text" id="description" name="description" required>
-                        
+            
                         <label for="deadline">Deadline</label>
                         <input type="datetime-local" id="deadline" name="deadline" required>
-                        
+            
                         <label for="urgency_id">Urgency</label>
                         <select id="urgency_id" name="urgency_id" required>
                             <option value="" disabled selected>Select Urgency</option>
@@ -86,7 +87,7 @@
                                 <option value="{{ urgency.id }}">{{ urgency.name }}</option>
                             {% endfor %}
                         </select>
-                        
+            
                         <label for="effort_id">Effort</label>
                         <select id="effort_id" name="effort_id" required>
                             <option value="" disabled selected>Select Effort</option>
@@ -94,12 +95,54 @@
                                 <option value="{{ effort.id }}">{{ effort.name }}</option>
                             {% endfor %}
                         </select>
-                        
-                        <button type="submit" class="create-task-button">Add Task</button>
+            
+                        <button type="submit" class="primary-button create-task-button">Add Task</button>
                     </form>
                 </div>
             </div>
-        </div>             
+            <div id="edit-task-modal" class="modal">
+                <div class="modal-content">
+                    <span class="modal-close modal-close-edit">&times;</span>
+                    <h2>Edit Task</h2>
+                    <form id="edit-task-form">
+                        <input type="hidden" id="edit-task-id">
+                        <div>
+                            <label for="edit-title">Title</label>
+                            <input type="text" id="edit-title" required>
+                        </div>
+                        <div>
+                            <label for="edit-description">Description</label>
+                            <textarea id="edit-description" required></textarea>
+                        </div>
+                        <div>
+                            <label for="edit-deadline">Deadline</label>
+                            <input type="date" id="edit-deadline" required>
+                        </div>
+                        <div>
+                            <label for="edit-urgency_id">Urgency</label>
+                            <select id="edit-urgency_id" required>
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div>
+                            <label for="edit-effort_id">Effort</label>
+                            <select id="edit-effort_id" required>
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div>
+                            <label for="edit-status_id">Status</label>
+                            <select id="edit-status_id" required>
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="buttons-row">
+                            <button type="submit" class="primary-button">Save</button>
+                            <button type="button" id="delete-task-button" class="delete-task-button">Delete</button>
+                        </div>
+                    </form>
+                </div>
+            </div>            
         <div id="context-menu" class="context-menu">
             <ul>
                 <li>
