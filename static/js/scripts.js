@@ -640,6 +640,32 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    document.getElementById('delete-task-button').addEventListener('click', function() {
+        const taskId = document.getElementById('edit-task-id').value;
+        if (confirm('Are you sure you want to delete this task?')) {
+            deleteTask(taskId);
+        }
+    });
+
+    function deleteTask(taskId) {
+        fetch(`/delete_task/${taskId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('edit-task-modal').style.display = 'none';
+                fetchTasks(); // Refresh tasks
+            } else {
+                console.error('Error deleting task:', data.error);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
     // Event listener for group title click to toggle visibility
     document.addEventListener('click', function (event) {
         if (event.target.classList.contains('group-title')) {

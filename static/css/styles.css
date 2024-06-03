@@ -609,23 +609,6 @@ button {
     font-size: 14px;
 }
 
-.modal-content button {
-    background-color: #4CAF50;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-family: 'Josefin Sans', sans-serif;
-    font-size: 16px;
-    transition: background-color 0.3s;
-}
-
-.modal-content button:hover {
-    background-color: #45a049;
-}
-
-
 .modal-close {
     color: #aaa;
     float: right;
@@ -640,7 +623,6 @@ button {
     cursor: pointer;
 }
 
-/* Form Styles */
 #create-task-form {
     display: flex;
     flex-direction: column;
@@ -661,19 +643,46 @@ button {
     border: 1px solid #ccc;
     border-radius: 5px;
     font-size: 16px;
-    color: #ffffff;
+    color: black;
 }
 
-.create-task-button {
-    padding: 10px;
-    background-color: #28a745;
+.buttons-row {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.delete-task-button {
+    background-color: #f44336;
     color: white;
+    padding: 10px 20px;
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    font-family: 'Josefin Sans', sans-serif;
     font-size: 16px;
+    transition: background-color 0.3s;
+    margin-top: 10px;
 }
 
-.create-task-button:hover {
-    background-color: #218838;
+.delete-task-button:hover {
+    background-color: #d32f2f;
+}
+
+.primary-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Josefin Sans', sans-serif;
+    font-size: 16px;
+    transition: background-color 0.3s;
+    margin-top: 10px;
+}
+
+.primary-button :hover {
+    background-color: #45a049;
 }

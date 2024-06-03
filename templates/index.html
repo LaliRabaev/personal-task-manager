@@ -96,7 +96,7 @@
                             {% endfor %}
                         </select>
             
-                        <button type="submit" class="create-task-button">Add Task</button>
+                        <button type="submit" class="primary-button create-task-button">Add Task</button>
                     </form>
                 </div>
             </div>
@@ -136,7 +136,10 @@
                                 <!-- Options will be populated dynamically -->
                             </select>
                         </div>
-                        <button type="submit">Save</button>
+                        <div class="buttons-row">
+                            <button type="submit" class="primary-button">Save</button>
+                            <button type="button" id="delete-task-button" class="delete-task-button">Delete</button>
+                        </div>
                     </form>
                 </div>
             </div>            
