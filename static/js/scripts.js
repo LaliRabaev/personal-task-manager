@@ -52,11 +52,11 @@ function showContextMenu(event) {
 
     const starIcon = document.getElementById('star-icon');
     const starText = document.getElementById('star-note');
-    if(currentNote.dataset.starred === "1"){
-        starIcon.src = "{{ url_for('static', filename='icons/starred.png') }}";
+    if (currentNote.dataset.starred === "1") {
+        starIcon.src = starredIconUrl;
         starText.textContent = 'Unstar';
     } else {
-        starIcon.src = "{{ url_for('static', filename='icons/unstarred.png') }}";
+        starIcon.src = unstarredIconUrl;
         starText.textContent = 'Star';
     }
     
@@ -77,7 +77,8 @@ window.addEventListener('click', function(event) {
 document.getElementById('edit-note').addEventListener('click', function() {
     if (currentNote) {
         const noteId = currentNote.getAttribute('data-id');
-        const noteContent = currentNote.textContent.trim();
+        const noteContentElement = currentNote.querySelector('.note_content');
+        const noteContent = noteContentElement ? noteContentElement.textContent.trim() : '';
         document.getElementById('note-input').value = noteContent;
         isEditMode = true;
         contextMenu.classList.remove('active'); // Hide context menu after clicking edit
@@ -112,63 +113,189 @@ document.getElementById('delete-note').addEventListener('click', function() {
     }
 });
 
+// Handle file selection
+document.getElementById('file-input').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+        console.log('Selected file:', file);
+    } else {
+        console.log('No file selected');
+    }
+});
+
+// Handle tag search and selection
+document.getElementById('note-input').addEventListener('input', function(event) {
+    const input = event.target.value;
+    const tagDropdown = document.getElementById('tag-dropdown');
+    
+
+    if (input.includes('#')) {
+        const tagSearch = input.split('#').pop();
+        fetch(`/tags?query=${tagSearch}`)
+        .then(response => response.json())
+        .then(tags => {
+            tagDropdown.innerHTML = '';
+            if (tags.length > 0) {
+                tags.forEach(tag => {
+                    const tagElement = document.createElement('div');
+                    tagElement.textContent = tag.name;
+                    tagElement.className = 'dropdown-item';
+                    tagElement.style.backgroundColor = tag.color_hex;
+                    tagElement.addEventListener('click', () => {
+                        const selectedTag = document.createElement('span');
+                        selectedTag.textContent = tag.name;
+                        selectedTag.className = 'selected-tag';
+                        document.getElementById('selected-tags').appendChild(selectedTag); // Append to selected tags container
+                        event.target.value = event.target.value.replace(`#${tagSearch}`, '').trim() + ' ';
+                        tagDropdown.innerHTML = '';
+                    });
+                    tagDropdown.appendChild(tagElement);
+                });
+                tagDropdown.style.display = 'block';
+            } else {
+                tagDropdown.style.display = 'none';
+            }
+        })
+        .catch(error => {
+        });
+    } else {
+        tagDropdown.style.display = 'none';
+    }
+});
+
 // Handle form submission
 document.getElementById('notes-form').addEventListener('submit', function(event) {
     event.preventDefault();
     const noteText = document.getElementById('note-input').value.trim();
-    if (noteText) {
-        if (isEditMode) {
-            const noteId = currentNote.getAttribute('data-id');
-            fetch(`/edit/${noteId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ note_content: noteText })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    currentNote.textContent = noteText;
-                    document.getElementById('note-input').value = '';
-                    isEditMode = false;
-                } else {
-                    alert("Error editing note");
-                    console.error('Error editing note:', data);
+    const submitButton = document.querySelector('#notes-form button[type="submit"]');
+    const feedbackMessage = document.getElementById('feedback-message');
+    const fileInput = document.getElementById('file-input');
+    const selectedTags = Array.from(document.querySelectorAll('.selected-tag')).map(tag => tag.textContent.trim());
+
+    if (!noteText && !fileInput.files.length) {
+        feedbackMessage.textContent = 'Note content or image must be provided.';
+        return;
+    }
+
+    submitButton.disabled = true;
+    feedbackMessage.textContent = '';
+
+    let formData = new FormData();
+    formData.append('note', noteText);
+    formData.append('tags', JSON.stringify(selectedTags));
+    if (fileInput.files.length) {
+        formData.append('file', fileInput.files[0]);
+    }
+
+    if (isEditMode && currentNote) {
+        const noteId = currentNote.getAttribute('data-id');
+        fetch(`/edit/${noteId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ note_content: noteText, tags: selectedTags })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const noteContentElement = currentNote.querySelector('.note_content');
+                if (noteContentElement) {
+                    noteContentElement.textContent = noteText;
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        } else {
-            let formData = new FormData();
-            formData.append('note', noteText);
-            fetch('{{ url_for("add_note") }}', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    let noteElement = document.createElement('li');
-                    noteElement.className = 'note_item';
-                    noteElement.textContent = noteText;
-                    noteElement.setAttribute('data-id', data.note_id);
-                    noteElement.setAttribute('data-starred', "0"); // Default to not starred
-                    noteElement.addEventListener('contextmenu', showContextMenu);
-                    document.getElementById('notes-list').appendChild(noteElement);
-                    document.getElementById('note-input').value = '';
-                } else {
-                    alert('Error saving note');
-                    console.error('Error saving note:', data);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
+                // Update tags
+                const tagElements = currentNote.querySelectorAll('.note_tag');
+                tagElements.forEach(tag => tag.remove());
+                selectedTags.forEach(tag => {
+                    const tagElement = document.createElement('span');
+                    tagElement.className = 'note_tag';
+                    tagElement.textContent = tag;
+                    currentNote.appendChild(tagElement);
+                });
+                document.getElementById('note-input').value = '';
+                isEditMode = false;
+            } else {
+                feedbackMessage.textContent = 'Error editing note: ' + data.message;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            feedbackMessage.textContent = 'Error editing note. ' + error.message;
+        })
+        .finally(() => {
+            submitButton.disabled = false;
+        });
+    } else {
+        fetch('/add', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => { throw new Error(text) });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                let noteElement = document.createElement('li');
+                noteElement.className = 'note_item';
+                noteElement.setAttribute('data-id', data.note_id);
+                noteElement.setAttribute('data-starred', "0"); // Default to not starred
+                noteElement.innerHTML = `
+                    <div class="drag-handle">☰</div>
+                    ${data.image_path ? `<img src="/${data.image_path}" alt="Note Image" class="note_image">` : ''}
+                    <span class="note_content">${data.note_content}</span>
+                    <span class="note_date">${data.created_at}</span>
+                    ${data.tags.map(tag => `<span class="note_tag">${tag.name}</span>`).join('')}
+                `;
+                noteElement.addEventListener('contextmenu', showContextMenu);
+                document.getElementById('notes-list').appendChild(noteElement);
+                document.getElementById('note-input').value = '';
+                fileInput.value = ''; // Clear the file input
+                document.getElementById('selected-tags').innerHTML = ''; // Clear selected tags
+            } else {
+                feedbackMessage.textContent = 'Error saving note: ' + data.message;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            feedbackMessage.textContent = 'Error saving note. ' + error.message;
+        })
+        .finally(() => {
+            submitButton.disabled = false;
+        });
     }
 });
+
+// Close the dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.input-container')) {
+        document.getElementById('tag-dropdown').style.display = 'none';
+    }
+});
+
+// Get the modal
+var modal = document.getElementById('image-fullscreen-modal');
+
+// Get the image and insert it inside the modal - use its "alt" text as a caption
+var modalImg = document.getElementById("full-image");
+var captionText = document.getElementById("caption");
+
+// Add event listener to dynamically added images
+document.addEventListener('click', function(event) {
+    if (event.target.classList.contains('note_image')) {
+        modal.style.display = "block";
+        modalImg.src = event.target.src;
+        captionText.innerHTML = event.target.alt;
+    }
+});
+
+var span = document.getElementsByClassName("image-close")[0];
+
+span.onclick = function() {
+    modal.style.display = "none";
+}
 
 // Handle star/unstar action
 document.getElementById('star-note').addEventListener('click', function() {
@@ -221,6 +348,7 @@ function handleDragStart(event) {
     currentNote = event.target.closest('.note_item');
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/html', currentNote.outerHTML);
+    currentNote.classList.add('dragging');
 }
 
 // Function to handle drag over
@@ -229,13 +357,20 @@ function handleDragOver(event) {
     event.dataTransfer.dropEffect = 'move';
     const targetNote = event.target.closest('.note_item');
     if (targetNote && targetNote !== currentNote) {
-        targetNote.parentNode.insertBefore(currentNote, targetNote.nextSibling);
+        const bounding = targetNote.getBoundingClientRect();
+        const offset = bounding.y + (bounding.height / 2);
+        if (event.clientY - offset > 0) {
+            targetNote.parentNode.insertBefore(currentNote, targetNote.nextSibling);
+        } else {
+            targetNote.parentNode.insertBefore(currentNote, targetNote);
+        }
     }
 }
 
 // Function to handle drop
 function handleDrop(event) {
     event.stopPropagation();
+    currentNote.classList.remove('dragging');
     const notesList = document.getElementById('notes-list');
     const updatedOrder = Array.from(notesList.children).map((note, index) => ({
         id: note.getAttribute('data-id'),

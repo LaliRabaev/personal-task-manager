@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 import os
 import random
 from datetime import datetime
+from werkzeug.utils import secure_filename
+import json
 
 load_dotenv()
 
@@ -15,11 +17,14 @@ db_port = os.getenv('DATABASE_PORT')
 db_dbs = os.getenv('DATABASE_DBS')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_dbs}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+
 db.init_app(app)
 
 @app.route('/')
 def index():
-    notes = Notes.query.filter_by(status='active').all()
+    notes = Notes.query.filter_by(status='active').order_by(Notes.note_order).all()
     groups = TaskGroups.query.all()
     statuses = TaskStatuses.query.all()
     urgencies = TaskUrgency.query.all()
@@ -33,24 +38,59 @@ def index():
 
 @app.route('/add', methods=['POST'])
 def add_note():
-    note_content = request.form['note']
-    if note_content:
-        new_note = Notes(note_content=note_content)
+    note_content = request.form.get('note')
+    file = request.files.get('file')
+    tags = request.form.get('tags')
+    tag_names = json.loads(tags)
+    tag_objects = TaskTags.query.filter(TaskTags.name.in_(tag_names)).all()
+
+    if note_content or file:
+        new_note = Notes(note_content=note_content if note_content else '')
+        new_note.tags = tag_objects
+
+        if file:
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            try:
+                file.save(file_path)
+                new_note.image_path = file_path.replace('\\', '/')
+            except Exception as e:
+                return jsonify(success=False, message="Error saving file."), 500
+
         db.session.add(new_note)
         db.session.commit()
-        return jsonify(success=True)
-    return jsonify(success=False)
+
+        return jsonify(
+            success=True, 
+            note_id=new_note.id, 
+            note_content=new_note.note_content, 
+            created_at=new_note.created_at.strftime('%Y-%m-%d %H:%M:%S'), 
+            image_path=new_note.image_path,
+            tags=[{'name': tag.name, 'color_hex': tag.color_hex} for tag in new_note.tags]
+        )
+
+    return jsonify(success=False, message="Note content or file must be provided."), 400
 
 @app.route('/edit/<int:note_id>', methods=['POST'])
 def edit_note(note_id):
     note = Notes.query.get(note_id)
     if note:
         note_content = request.json.get('note_content')
+        tags = request.json.get('tags')
+        tag_names = tags if tags else []
+        tag_objects = TaskTags.query.filter(TaskTags.name.in_(tag_names)).all()
         note.note_content = note_content
+        note.tags = tag_objects
         note.updated_at = datetime.utcnow()
         db.session.commit()
         return jsonify(success=True)
-    return jsonify(success=False)
+    return jsonify(success=False, message="Note not found")
+
+@app.route('/tags')
+def get_tags():
+    query = request.args.get('query', '')
+    tags = TaskTags.query.filter(TaskTags.name.like(f'%{query}%')).all()
+    return jsonify([{'name': tag.name, 'color_hex': tag.color_hex} for tag in tags])
 
 @app.route('/delete/<int:note_id>', methods=['POST'])
 def delete_note(note_id):
@@ -73,13 +113,17 @@ def star_note(note_id):
 
 @app.route('/update_order', methods=['POST'])
 def update_order():
-    data = request.get_json()
-    for item in data['order']:
-        note = Notes.query.get(item['id'])
-        if note:
-            note.order = item['order']
-    db.session.commit()
-    return jsonify(success=True)
+    data = request.json
+    try:
+        for item in data['order']:
+            note = Notes.query.get(item['id'])
+            if note:
+                note.note_order = item['order']
+        db.session.commit()
+        return jsonify(success=True)
+    except Exception as e:
+        print(f"Error updating order: {e}")
+        return jsonify(success=False), 500
 
 @app.route('/random_quote')
 def random_quote():
@@ -152,7 +196,6 @@ def update_group_status(group_id):
 def add_task():
     try:
         data = request.get_json()
-        print("Received data:", data)  # Log the received data
 
         # Check if data is None
         if data is None:
@@ -187,10 +230,8 @@ def add_task():
         )
         db.session.add(new_task)
         db.session.commit()
-        print("Task added successfully")
         return jsonify({'success': True, 'task_id': new_task.id})
     except Exception as e:
-        print(f"Error: {e}")  # Log the error for debugging
         return jsonify({'success': False, 'error': str(e)}), 400
 
 @app.route('/add_task_step', methods=['POST'])

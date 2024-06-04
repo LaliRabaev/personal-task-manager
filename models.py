@@ -3,15 +3,21 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
+notes_tags = db.Table('notes_tags',
+    db.Column('note_id', db.Integer, db.ForeignKey('notes.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('task_tags.id'), primary_key=True)
+)
+
 class Notes(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     note_order = db.Column(db.Integer)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     note_content = db.Column(db.Text, nullable=False)
     is_starred = db.Column(db.Boolean, default=False)
-    tag = db.Column(db.String(255))
     status = db.Column(db.Enum('active', 'inactive'), default='active')
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    image_path = db.Column(db.String(255), nullable=True)
+    tags = db.relationship('TaskTags', secondary=notes_tags, backref=db.backref('notes', lazy=True))
 
 class Quotes(db.Model):
     id = db.Column(db.Integer, primary_key=True)
