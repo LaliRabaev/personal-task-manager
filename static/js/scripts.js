@@ -53,10 +53,10 @@ function showContextMenu(event) {
     const starIcon = document.getElementById('star-icon');
     const starText = document.getElementById('star-note');
     if(currentNote.dataset.starred === "1"){
-        starIcon.src = "{{ url_for('static', filename='icons/starred.png') }}";
+        starIcon.src = starredIconUrl;
         starText.textContent = 'Unstar';
     } else {
-        starIcon.src = "{{ url_for('static', filename='icons/unstarred.png') }}";
+        starIcon.src = unstarredIconUrl;
         starText.textContent = 'Star';
     }
     
@@ -77,7 +77,8 @@ window.addEventListener('click', function(event) {
 document.getElementById('edit-note').addEventListener('click', function() {
     if (currentNote) {
         const noteId = currentNote.getAttribute('data-id');
-        const noteContent = currentNote.textContent.trim();
+        const noteContentElement = currentNote.querySelector('.note_content');
+        const noteContent = noteContentElement ? noteContentElement.textContent.trim() : '';
         document.getElementById('note-input').value = noteContent;
         isEditMode = true;
         contextMenu.classList.remove('active'); // Hide context menu after clicking edit
@@ -112,63 +113,140 @@ document.getElementById('delete-note').addEventListener('click', function() {
     }
 });
 
+document.getElementById('file-input').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+        console.log('Selected file:', file);
+    } else {
+        console.log('No file selected');
+    }
+});
+
+// Handle form submission
+document.getElementById('edit-note').addEventListener('click', function() {
+    if (currentNote) {
+        const noteId = currentNote.getAttribute('data-id');
+        const noteContentElement = currentNote.querySelector('.note_content');
+        const noteContent = noteContentElement ? noteContentElement.textContent.trim() : '';
+        document.getElementById('note-input').value = noteContent;
+        isEditMode = true;
+        contextMenu.classList.remove('active'); // Hide context menu after clicking edit
+    }
+});
+
 // Handle form submission
 document.getElementById('notes-form').addEventListener('submit', function(event) {
     event.preventDefault();
     const noteText = document.getElementById('note-input').value.trim();
-    if (noteText) {
-        if (isEditMode) {
-            const noteId = currentNote.getAttribute('data-id');
-            fetch(`/edit/${noteId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ note_content: noteText })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    currentNote.textContent = noteText;
-                    document.getElementById('note-input').value = '';
-                    isEditMode = false;
-                } else {
-                    alert("Error editing note");
-                    console.error('Error editing note:', data);
+    const submitButton = document.querySelector('#notes-form button[type="submit"]');
+    const feedbackMessage = document.getElementById('feedback-message');
+    const fileInput = document.getElementById('file-input');
+
+    if (!noteText && !fileInput.files.length) {
+        feedbackMessage.textContent = 'Note content or image must be provided.';
+        return;
+    }
+
+    submitButton.disabled = true;
+    feedbackMessage.textContent = '';
+
+    let formData = new FormData();
+    formData.append('note', noteText);
+    if (fileInput.files.length) {
+        formData.append('file', fileInput.files[0]);
+    }
+
+    if (isEditMode && currentNote) {
+        const noteId = currentNote.getAttribute('data-id');
+        fetch(`/edit/${noteId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ note_content: noteText })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const noteContentElement = currentNote.querySelector('.note_content');
+                if (noteContentElement) {
+                    noteContentElement.textContent = noteText;
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        } else {
-            let formData = new FormData();
-            formData.append('note', noteText);
-            fetch('{{ url_for("add_note") }}', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    let noteElement = document.createElement('li');
-                    noteElement.className = 'note_item';
-                    noteElement.textContent = noteText;
-                    noteElement.setAttribute('data-id', data.note_id);
-                    noteElement.setAttribute('data-starred', "0"); // Default to not starred
-                    noteElement.addEventListener('contextmenu', showContextMenu);
-                    document.getElementById('notes-list').appendChild(noteElement);
-                    document.getElementById('note-input').value = '';
-                } else {
-                    alert('Error saving note');
-                    console.error('Error saving note:', data);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
+                document.getElementById('note-input').value = '';
+                isEditMode = false;
+            } else {
+                feedbackMessage.textContent = 'Error editing note: ' + data.message;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            feedbackMessage.textContent = 'Error editing note. ' + error.message;
+        })
+        .finally(() => {
+            submitButton.disabled = false;
+        });
+    } else {
+        fetch('/add', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => { throw new Error(text) });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                let noteElement = document.createElement('li');
+                noteElement.className = 'note_item';
+                noteElement.setAttribute('data-id', data.note_id);
+                noteElement.setAttribute('data-starred', "0"); // Default to not starred
+                noteElement.innerHTML = `
+                    <div class="drag-handle">☰</div>
+                    ${data.image_path ? `<img src="/${data.image_path}" alt="Note Image" class="note_image">` : ''}
+                    <span class="note_content">${data.note_content}</span>
+                    <span class="note_date">${data.created_at}</span>
+                `;
+                noteElement.addEventListener('contextmenu', showContextMenu);
+                document.getElementById('notes-list').appendChild(noteElement);
+                document.getElementById('note-input').value = '';
+                fileInput.value = ''; // Clear the file input
+            } else {
+                feedbackMessage.textContent = 'Error saving note: ' + data.message;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            feedbackMessage.textContent = 'Error saving note. ' + error.message;
+        })
+        .finally(() => {
+            submitButton.disabled = false;
+        });
     }
 });
+
+// Get the modal
+var modal = document.getElementById('image-fullscreen-modal');
+
+// Get the image and insert it inside the modal - use its "alt" text as a caption
+var modalImg = document.getElementById("full-image");
+var captionText = document.getElementById("caption");
+
+// Add event listener to dynamically added images
+document.addEventListener('click', function(event) {
+    if (event.target.classList.contains('note_image')) {
+        modal.style.display = "block";
+        modalImg.src = event.target.src;
+        captionText.innerHTML = event.target.alt;
+    }
+});
+
+var span = document.getElementsByClassName("image-close")[0];
+
+span.onclick = function() {
+    modal.style.display = "none";
+}
 
 // Handle star/unstar action
 document.getElementById('star-note').addEventListener('click', function() {
@@ -263,12 +341,14 @@ function handleDrop(event) {
 }
 
 // Attach drag and drop event listeners to notes
-document.querySelectorAll('.note_item').forEach(note => {
-    note.setAttribute('draggable', true);
-    note.addEventListener('dragstart', handleDragStart);
-    note.addEventListener('dragover', handleDragOver);
-    note.addEventListener('drop', handleDrop);
-});
+function addNoteEventListeners(noteElement) {
+    noteElement.addEventListener('contextmenu', showContextMenu);
+    noteElement.setAttribute('draggable', true);
+    noteElement.addEventListener('dragstart', handleDragStart);
+    noteElement.addEventListener('dragover', handleDragOver);
+    noteElement.addEventListener('drop', handleDrop);
+    addNoteEventListeners(note);
+};
 
 // Function to fetch and display a random quote
 function fetchRandomQuote() {

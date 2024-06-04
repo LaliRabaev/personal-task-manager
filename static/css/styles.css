@@ -185,6 +185,62 @@ button {
     cursor: pointer;
 }
 
+.note_image {
+max-width: 100%;
+height: auto;
+margin-top: 10px;
+border-radius: 5px;
+}
+
+.image-modal {
+display: none;
+position: fixed;
+z-index: 2000;
+padding-top: 60px;
+left: 0;
+top: 0;
+width: 100%;
+height: 100%;
+overflow: auto;
+background-color: rgb(0,0,0);
+background-color: rgba(0,0,0,0.9);
+}
+
+.image-modal-content {
+margin: auto;
+display: block;
+width: 80%;
+max-width: 700px;
+z-index: 2000;
+}
+
+#caption {
+margin: auto;
+display: block;
+width: 80%;
+max-width: 700px;
+text-align: center;
+color: #ccc;
+padding: 10px 0;
+}
+
+.image-close {
+position: absolute;
+top: 15px;
+right: 35px;
+color: #f1f1f1;
+font-size: 40px;
+font-weight: bold;
+transition: 0.3s;
+}
+
+.image-close:hover,
+.image-close:focus {
+color: #bbb;
+text-decoration: none;
+cursor: pointer;
+}
+
 .context-menu {
     display: none;
     position: absolute;
@@ -266,6 +322,11 @@ button {
     grid-area: order;
     opacity: 0.8;
     align-self: center;
+}
+
+.note_item.editing {
+    border: 2px solid #f39c12;
+    background-color: rgba(243, 156, 18, 0.1);
 }
 
 /* ScrollBar */

@@ -12,6 +12,7 @@ class Notes(db.Model):
     tag = db.Column(db.String(255))
     status = db.Column(db.Enum('active', 'inactive'), default='active')
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    image_path = db.Column(db.String(255), nullable=True)
 
 class Quotes(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 import random
 from datetime import datetime
+from werkzeug.utils import secure_filename
 
 load_dotenv()
 
@@ -15,6 +16,9 @@ db_port = os.getenv('DATABASE_PORT')
 db_dbs = os.getenv('DATABASE_DBS')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_dbs}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+
 db.init_app(app)
 
 @app.route('/')
@@ -33,13 +37,35 @@ def index():
 
 @app.route('/add', methods=['POST'])
 def add_note():
-    note_content = request.form['note']
-    if note_content:
-        new_note = Notes(note_content=note_content)
+    note_content = request.form.get('note')
+    file = request.files.get('file')
+
+    if note_content or file:
+        new_note = Notes(note_content=note_content if note_content else '')
+
+        if file:
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            try:
+                file.save(file_path)
+                new_note.image_path = file_path.replace('\\', '/')
+                print(f"File saved at: {file_path}")
+            except Exception as e:
+                print(f"Error saving file: {e}")
+                return jsonify(success=False, message="Error saving file."), 500
+
         db.session.add(new_note)
         db.session.commit()
-        return jsonify(success=True)
-    return jsonify(success=False)
+
+        return jsonify(
+            success=True, 
+            note_id=new_note.id, 
+            note_content=new_note.note_content, 
+            created_at=new_note.created_at.strftime('%Y-%m-%d %H:%M:%S'), 
+            image_path=new_note.image_path
+        )
+
+    return jsonify(success=False, message="Note content or file must be provided."), 400
 
 @app.route('/edit/<int:note_id>', methods=['POST'])
 def edit_note(note_id):
