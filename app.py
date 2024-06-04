@@ -5,6 +5,7 @@ import os
 import random
 from datetime import datetime
 from werkzeug.utils import secure_filename
+import json
 
 load_dotenv()
 
@@ -35,13 +36,18 @@ def index():
         task.status = TaskStatuses.query.get(task.status_id)
     return render_template('index.html', notes=notes, groups=groups, tasks=tasks, statuses=statuses, urgencies=urgencies, efforts=efforts)
 
+
 @app.route('/add', methods=['POST'])
 def add_note():
     note_content = request.form.get('note')
     file = request.files.get('file')
+    tags = request.form.get('tags')
+    tag_names = json.loads(tags)
+    tag_objects = TaskTags.query.filter(TaskTags.name.in_(tag_names)).all()
 
     if note_content or file:
         new_note = Notes(note_content=note_content if note_content else '')
+        new_note.tags = tag_objects
 
         if file:
             filename = secure_filename(file.filename)
@@ -49,9 +55,7 @@ def add_note():
             try:
                 file.save(file_path)
                 new_note.image_path = file_path.replace('\\', '/')
-                print(f"File saved at: {file_path}")
             except Exception as e:
-                print(f"Error saving file: {e}")
                 return jsonify(success=False, message="Error saving file."), 500
 
         db.session.add(new_note)
@@ -62,7 +66,8 @@ def add_note():
             note_id=new_note.id, 
             note_content=new_note.note_content, 
             created_at=new_note.created_at.strftime('%Y-%m-%d %H:%M:%S'), 
-            image_path=new_note.image_path
+            image_path=new_note.image_path,
+            tags=[{'name': tag.name, 'color_hex': tag.color_hex} for tag in new_note.tags]
         )
 
     return jsonify(success=False, message="Note content or file must be provided."), 400
@@ -72,11 +77,21 @@ def edit_note(note_id):
     note = Notes.query.get(note_id)
     if note:
         note_content = request.json.get('note_content')
+        tags = request.json.get('tags')
+        tag_names = tags if tags else []
+        tag_objects = TaskTags.query.filter(TaskTags.name.in_(tag_names)).all()
         note.note_content = note_content
+        note.tags = tag_objects
         note.updated_at = datetime.utcnow()
         db.session.commit()
         return jsonify(success=True)
-    return jsonify(success=False)
+    return jsonify(success=False, message="Note not found")
+
+@app.route('/tags')
+def get_tags():
+    query = request.args.get('query', '')
+    tags = TaskTags.query.filter(TaskTags.name.like(f'%{query}%')).all()
+    return jsonify([{'name': tag.name, 'color_hex': tag.color_hex} for tag in tags])
 
 @app.route('/delete/<int:note_id>', methods=['POST'])
 def delete_note(note_id):
@@ -178,7 +193,6 @@ def update_group_status(group_id):
 def add_task():
     try:
         data = request.get_json()
-        print("Received data:", data)  # Log the received data
 
         # Check if data is None
         if data is None:
@@ -213,10 +227,8 @@ def add_task():
         )
         db.session.add(new_task)
         db.session.commit()
-        print("Task added successfully")
         return jsonify({'success': True, 'task_id': new_task.id})
     except Exception as e:
-        print(f"Error: {e}")  # Log the error for debugging
         return jsonify({'success': False, 'error': str(e)}), 400
 
 @app.route('/add_task_step', methods=['POST'])

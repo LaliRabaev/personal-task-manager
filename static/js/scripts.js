@@ -52,7 +52,7 @@ function showContextMenu(event) {
 
     const starIcon = document.getElementById('star-icon');
     const starText = document.getElementById('star-note');
-    if(currentNote.dataset.starred === "1"){
+    if (currentNote.dataset.starred === "1") {
         starIcon.src = starredIconUrl;
         starText.textContent = 'Unstar';
     } else {
@@ -113,6 +113,7 @@ document.getElementById('delete-note').addEventListener('click', function() {
     }
 });
 
+// Handle file selection
 document.getElementById('file-input').addEventListener('change', function(event) {
     const file = event.target.files[0];
     if (file) {
@@ -122,15 +123,43 @@ document.getElementById('file-input').addEventListener('change', function(event)
     }
 });
 
-// Handle form submission
-document.getElementById('edit-note').addEventListener('click', function() {
-    if (currentNote) {
-        const noteId = currentNote.getAttribute('data-id');
-        const noteContentElement = currentNote.querySelector('.note_content');
-        const noteContent = noteContentElement ? noteContentElement.textContent.trim() : '';
-        document.getElementById('note-input').value = noteContent;
-        isEditMode = true;
-        contextMenu.classList.remove('active'); // Hide context menu after clicking edit
+// Handle tag search and selection
+document.getElementById('note-input').addEventListener('input', function(event) {
+    const input = event.target.value;
+    const tagDropdown = document.getElementById('tag-dropdown');
+    
+
+    if (input.includes('#')) {
+        const tagSearch = input.split('#').pop();
+        fetch(`/tags?query=${tagSearch}`)
+        .then(response => response.json())
+        .then(tags => {
+            tagDropdown.innerHTML = '';
+            if (tags.length > 0) {
+                tags.forEach(tag => {
+                    const tagElement = document.createElement('div');
+                    tagElement.textContent = tag.name;
+                    tagElement.className = 'dropdown-item';
+                    tagElement.style.backgroundColor = tag.color_hex;
+                    tagElement.addEventListener('click', () => {
+                        const selectedTag = document.createElement('span');
+                        selectedTag.textContent = tag.name;
+                        selectedTag.className = 'selected-tag';
+                        document.getElementById('selected-tags').appendChild(selectedTag); // Append to selected tags container
+                        event.target.value = event.target.value.replace(`#${tagSearch}`, '').trim() + ' ';
+                        tagDropdown.innerHTML = '';
+                    });
+                    tagDropdown.appendChild(tagElement);
+                });
+                tagDropdown.style.display = 'block';
+            } else {
+                tagDropdown.style.display = 'none';
+            }
+        })
+        .catch(error => {
+        });
+    } else {
+        tagDropdown.style.display = 'none';
     }
 });
 
@@ -141,6 +170,7 @@ document.getElementById('notes-form').addEventListener('submit', function(event)
     const submitButton = document.querySelector('#notes-form button[type="submit"]');
     const feedbackMessage = document.getElementById('feedback-message');
     const fileInput = document.getElementById('file-input');
+    const selectedTags = Array.from(document.querySelectorAll('.selected-tag')).map(tag => tag.textContent.trim());
 
     if (!noteText && !fileInput.files.length) {
         feedbackMessage.textContent = 'Note content or image must be provided.';
@@ -152,6 +182,7 @@ document.getElementById('notes-form').addEventListener('submit', function(event)
 
     let formData = new FormData();
     formData.append('note', noteText);
+    formData.append('tags', JSON.stringify(selectedTags));
     if (fileInput.files.length) {
         formData.append('file', fileInput.files[0]);
     }
@@ -163,7 +194,7 @@ document.getElementById('notes-form').addEventListener('submit', function(event)
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ note_content: noteText })
+            body: JSON.stringify({ note_content: noteText, tags: selectedTags })
         })
         .then(response => response.json())
         .then(data => {
@@ -172,6 +203,15 @@ document.getElementById('notes-form').addEventListener('submit', function(event)
                 if (noteContentElement) {
                     noteContentElement.textContent = noteText;
                 }
+                // Update tags
+                const tagElements = currentNote.querySelectorAll('.note_tag');
+                tagElements.forEach(tag => tag.remove());
+                selectedTags.forEach(tag => {
+                    const tagElement = document.createElement('span');
+                    tagElement.className = 'note_tag';
+                    tagElement.textContent = tag;
+                    currentNote.appendChild(tagElement);
+                });
                 document.getElementById('note-input').value = '';
                 isEditMode = false;
             } else {
@@ -207,11 +247,13 @@ document.getElementById('notes-form').addEventListener('submit', function(event)
                     ${data.image_path ? `<img src="/${data.image_path}" alt="Note Image" class="note_image">` : ''}
                     <span class="note_content">${data.note_content}</span>
                     <span class="note_date">${data.created_at}</span>
+                    ${data.tags.map(tag => `<span class="note_tag" style="background-color: ${tag.color_hex}">${tag.name}</span>`).join('')}
                 `;
                 noteElement.addEventListener('contextmenu', showContextMenu);
                 document.getElementById('notes-list').appendChild(noteElement);
                 document.getElementById('note-input').value = '';
                 fileInput.value = ''; // Clear the file input
+                document.getElementById('selected-tags').innerHTML = ''; // Clear selected tags
             } else {
                 feedbackMessage.textContent = 'Error saving note: ' + data.message;
             }
@@ -223,6 +265,13 @@ document.getElementById('notes-form').addEventListener('submit', function(event)
         .finally(() => {
             submitButton.disabled = false;
         });
+    }
+});
+
+// Close the dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.input-container')) {
+        document.getElementById('tag-dropdown').style.display = 'none';
     }
 });
 

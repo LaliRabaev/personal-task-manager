@@ -37,6 +37,9 @@
                             {% if note.image_path %}
                                 <img src="{{ url_for('static', filename=note.image_path.replace('static/', '')) }}" alt="Note Image" class="note_image">
                             {% endif %}
+                            {% for tag in note.tags %}
+                                <span class="note_tag" style="background-color: {{ tag.color_hex }}">{{ tag.name }}</span>
+                            {% endfor %}
                         </li>
                     {% endfor %}
                 </ul>
@@ -47,11 +50,13 @@
                             <img src="{{ url_for('static', filename='icons/upload_picture.png') }}" alt="Upload" class="icon">
                         </label>
                         <input type="text" name="note" id="note-input" placeholder="Type message">
+                        <div id="tag-dropdown" class="dropdown-content"></div>
+                        <div id="selected-tags"></div> <!-- Container to display selected tags -->
                         <button type="submit" id="submit-button">
                             <img src="{{ url_for('static', filename='icons/send.png') }}" alt="Send" class="icon">
                         </button>
                     </div>
-                </form>
+                </form>                                                        
                 <div id="image-fullscreen-modal" class="image-modal">
                     <span class="image-close">&times;</span>
                     <img class="image-modal-content" id="full-image">
