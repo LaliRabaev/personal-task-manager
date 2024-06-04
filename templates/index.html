@@ -6,7 +6,7 @@
     <title>Task Management App</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -31,15 +31,21 @@
                 <ul id="notes-list">
                     {% for note in notes %}
                         <li class="note_item" data-id="{{ note.id }}" data-starred="{{ '1' if note.is_starred else '0' }}" oncontextmenu="showContextMenu(event)">
-                            <div class="drag-handle">☰</div>
-                            <span class="note_content">{{ note.note_content }}</span>
-                            <span class="note_date">{{ note.created_at }}</span>
-                            {% if note.image_path %}
-                                <img src="{{ url_for('static', filename=note.image_path.replace('static/', '')) }}" alt="Note Image" class="note_image">
-                            {% endif %}
-                            {% for tag in note.tags %}
-                                <span class="note_tag" style="background-color: {{ tag.color_hex }}">{{ tag.name }}</span>
-                            {% endfor %}
+                            <div class="note-background">
+                                <div class="drag-handle">☰</div>
+                                <div class="note-content-and-tags">
+                                    <span class="note_content">{{ note.note_content }}</span>
+                                    {% if note.image_path %}
+                                        <img src="{{ url_for('static', filename=note.image_path.replace('static/', '')) }}" alt="Note Image" class="note_image">
+                                    {% endif %}
+                                    <div class="tags-container">
+                                        {% for tag in note.tags %}
+                                            <div class="tag-background"><span class="note_tag">{{ tag.name }}</span></div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="note_date">{{ note.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
                         </li>
                     {% endfor %}
                 </ul>

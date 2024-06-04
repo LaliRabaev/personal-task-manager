@@ -24,7 +24,7 @@ db.init_app(app)
 
 @app.route('/')
 def index():
-    notes = Notes.query.filter_by(status='active').all()
+    notes = Notes.query.filter_by(status='active').order_by(Notes.note_order).all()
     groups = TaskGroups.query.all()
     statuses = TaskStatuses.query.all()
     urgencies = TaskUrgency.query.all()
@@ -35,7 +35,6 @@ def index():
         task.effort = TaskEffort.query.get(task.effort_id)
         task.status = TaskStatuses.query.get(task.status_id)
     return render_template('index.html', notes=notes, groups=groups, tasks=tasks, statuses=statuses, urgencies=urgencies, efforts=efforts)
-
 
 @app.route('/add', methods=['POST'])
 def add_note():
@@ -114,13 +113,17 @@ def star_note(note_id):
 
 @app.route('/update_order', methods=['POST'])
 def update_order():
-    data = request.get_json()
-    for item in data['order']:
-        note = Notes.query.get(item['id'])
-        if note:
-            note.order = item['order']
-    db.session.commit()
-    return jsonify(success=True)
+    data = request.json
+    try:
+        for item in data['order']:
+            note = Notes.query.get(item['id'])
+            if note:
+                note.note_order = item['order']
+        db.session.commit()
+        return jsonify(success=True)
+    except Exception as e:
+        print(f"Error updating order: {e}")
+        return jsonify(success=False), 500
 
 @app.route('/random_quote')
 def random_quote():

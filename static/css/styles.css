@@ -6,7 +6,7 @@
 
 body {
     font-family: 'Josefin Sans', sans-serif;
-    font-weight: 400; /* Regular */
+    font-weight: 400;
     background-color: #181820;
     color: #FFFFFF;
     margin: 0;
@@ -48,7 +48,7 @@ body {
     margin: 5px auto;
     line-height: 120%;
     font-style: italic;
-    font-weight: 700; /* Bold */
+    font-weight: 700;
     word-wrap: break-word;
     white-space: pre-wrap;
     max-width: 90%;
@@ -176,6 +176,10 @@ li:hover {
     outline: none;
     flex-grow: 1;
     width: 60%;
+    font-family: 'Josefin Sans', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    color: #303030;
 }
 
 button {
@@ -187,10 +191,10 @@ button {
 }
 
 .note_image {
-max-width: 100%;
-height: auto;
-margin-top: 10px;
-border-radius: 5px;
+    max-width: 100%;
+    height: auto;
+    margin: 10px auto;
+    border-radius: 5px;
 }
 
 .dropdown-content {
@@ -220,63 +224,63 @@ border-radius: 5px;
 
 .selected-tag {
     display: inline-block;
-    background-color: #f1f1f1;
-    color: #333;
+    background-color: rgba(241, 241, 241, 0.9);
+    color: #303030;
     padding: 5px 10px;
     margin: 4px;
-    border-radius: 12px;
+    border-radius: 3px;
     font-size: 14px;
     font-weight: 500;
     box-shadow: 0px 2px 4px rgba(0,0,0,0.1);
 }
 
 .image-modal {
-display: none;
-position: fixed;
-z-index: 2000;
-padding-top: 60px;
-left: 0;
-top: 0;
-width: 100%;
-height: 100%;
-overflow: auto;
-background-color: rgb(0,0,0);
-background-color: rgba(0,0,0,0.9);
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    padding-top: 60px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.9);
 }
 
 .image-modal-content {
-margin: auto;
-display: block;
-width: 80%;
-max-width: 700px;
-z-index: 2000;
+    margin: auto;
+    display: block;
+    width: 80%;
+    max-width: 700px;
+    z-index: 2000;
 }
 
 #caption {
-margin: auto;
-display: block;
-width: 80%;
-max-width: 700px;
-text-align: center;
-color: #ccc;
-padding: 10px 0;
+    margin: auto;
+    display: block;
+    width: 80%;
+    max-width: 700px;
+    text-align: center;
+    color: #ccc;
+    padding: 10px 0;
 }
 
 .image-close {
-position: absolute;
-top: 15px;
-right: 35px;
-color: #f1f1f1;
-font-size: 40px;
-font-weight: bold;
-transition: 0.3s;
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    transition: 0.3s;
 }
 
 .image-close:hover,
 .image-close:focus {
-color: #bbb;
-text-decoration: none;
-cursor: pointer;
+    color: #bbb;
+    text-decoration: none;
+    cursor: pointer;
 }
 
 .context-menu {
@@ -323,32 +327,61 @@ cursor: pointer;
 }
 
 .note_item {
+    padding: 7px;
+}
+
+.note-background {
     word-wrap: break-word;
     white-space: pre-wrap;
     padding: 10px;
-    display: grid;
     justify-content: start;
     border-radius: 5px;
     background-color: rgba(168, 168, 168, 0.15);
-    margin-bottom: 10px;
-    grid-template-columns: 30px 200px;
-    grid-template-rows: auto;
-    grid-template-areas: 
-    "order note-content"
-    "order note-date";
+    margin-bottom: 5px;
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
+}
+
+.note-content-and-tags {
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+}
+
+.tags-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+}
+
+.tag-background {
+    background-color: rgba(241, 241, 241, 0.9);
+    border-radius: 3px;
+    padding: 1px 3px;
+    margin: 5px 10px 0 0;
+    text-align: center;
+    box-shadow: 0px 2px 4px rgba(0,0,0,0.1);
+}
+
+.note_tag {
+    color: #303030;
+    font-size: 12px;
 }
 
 .note_content {
-    font-size: 16px;
-    font-weight: bolder;
-    grid-area: note-content;
+    font-size: 18px;
+    font-weight: 400;
 }
 
 .note_date {
     font-size: 12px;
-    margin-top: 10px;
-    opacity: 0.8;
-    grid-area: note-date;
+    margin-top: 5px;
+    opacity: 65%;
+    font-family: 'Josefin Sans', sans-serif;
+    font-style: italic;
+    font-weight: 400;
 }
 
 .drag-handle {
@@ -435,11 +468,12 @@ cursor: pointer;
 }
 
 .task .title {
-    font-weight: bold;
+    font-weight: 500;
 }
 
 .task .description {
     font-size: 14px;
+    font-weight: 200;
     color: #FFFFFF;
     opacity: 70%;
     margin: 10px 10px 0 0;

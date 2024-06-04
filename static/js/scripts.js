@@ -247,7 +247,7 @@ document.getElementById('notes-form').addEventListener('submit', function(event)
                     ${data.image_path ? `<img src="/${data.image_path}" alt="Note Image" class="note_image">` : ''}
                     <span class="note_content">${data.note_content}</span>
                     <span class="note_date">${data.created_at}</span>
-                    ${data.tags.map(tag => `<span class="note_tag" style="background-color: ${tag.color_hex}">${tag.name}</span>`).join('')}
+                    ${data.tags.map(tag => `<span class="note_tag">${tag.name}</span>`).join('')}
                 `;
                 noteElement.addEventListener('contextmenu', showContextMenu);
                 document.getElementById('notes-list').appendChild(noteElement);
@@ -348,6 +348,7 @@ function handleDragStart(event) {
     currentNote = event.target.closest('.note_item');
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/html', currentNote.outerHTML);
+    currentNote.classList.add('dragging');
 }
 
 // Function to handle drag over
@@ -356,13 +357,20 @@ function handleDragOver(event) {
     event.dataTransfer.dropEffect = 'move';
     const targetNote = event.target.closest('.note_item');
     if (targetNote && targetNote !== currentNote) {
-        targetNote.parentNode.insertBefore(currentNote, targetNote.nextSibling);
+        const bounding = targetNote.getBoundingClientRect();
+        const offset = bounding.y + (bounding.height / 2);
+        if (event.clientY - offset > 0) {
+            targetNote.parentNode.insertBefore(currentNote, targetNote.nextSibling);
+        } else {
+            targetNote.parentNode.insertBefore(currentNote, targetNote);
+        }
     }
 }
 
 // Function to handle drop
 function handleDrop(event) {
     event.stopPropagation();
+    currentNote.classList.remove('dragging');
     const notesList = document.getElementById('notes-list');
     const updatedOrder = Array.from(notesList.children).map((note, index) => ({
         id: note.getAttribute('data-id'),
@@ -390,14 +398,12 @@ function handleDrop(event) {
 }
 
 // Attach drag and drop event listeners to notes
-function addNoteEventListeners(noteElement) {
-    noteElement.addEventListener('contextmenu', showContextMenu);
-    noteElement.setAttribute('draggable', true);
-    noteElement.addEventListener('dragstart', handleDragStart);
-    noteElement.addEventListener('dragover', handleDragOver);
-    noteElement.addEventListener('drop', handleDrop);
-    addNoteEventListeners(note);
-};
+document.querySelectorAll('.note_item').forEach(note => {
+    note.setAttribute('draggable', true);
+    note.addEventListener('dragstart', handleDragStart);
+    note.addEventListener('dragover', handleDragOver);
+    note.addEventListener('drop', handleDrop);
+});
 
 // Function to fetch and display a random quote
 function fetchRandomQuote() {
