@@ -554,6 +554,27 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('create-task-form').reset();
     }
 
+    // function for task deadline
+    function getDaySuffix(day) {
+        if (day > 3 && day < 21) return 'th';
+        switch (day % 10) {
+            case 1: return 'st';
+            case 2: return 'nd';
+            case 3: return 'rd';
+            default: return 'th';
+        }
+    }
+
+    // Function to format the date to "Month day"
+    function formatDateToMonthDay(dateString) {
+        const date = new Date(dateString);
+        const options = { month: 'long' };
+        const month = date.toLocaleDateString('en-US', options);
+        const day = date.getDate();
+        const daySuffix = getDaySuffix(day);
+        return `${month} ${day}${daySuffix}`;
+    } 
+
     // Fetch and display tasks
     function fetchTasks() {
         fetch('/tasks')
@@ -579,29 +600,43 @@ document.addEventListener('DOMContentLoaded', function() {
         taskElement.className = 'task';
         taskElement.dataset.id = task.id;
         taskElement.dataset.groupId = task.group_id;
-
+    
+        const daysLeft = calculateDaysLeft(task.deadline);
+        const deadlineColor = getDeadlineColor(task.deadline);
+        const deadlineStatus = getDeadlineStatus(task.deadline);
+    
         taskElement.innerHTML = `
             <div class="task-header">
-                <div class="title">${task.title}</div>
-                <div class="status">
-                    <div id="app-cover">
-                        <div id="select-box-${task.id}">
-                            <div id="select-button-${task.id}" class="brd" data-selected-color="rgba(${hexToRgb(task.status.color_hex)}, 0.3)" data-selected-text-color="#${task.status.color_hex}">
-                                <div id="selected-value-${task.id}">
-                                    <span class="selected-status">${task.status.name}</span>
+                <div class="task-top-header">
+                    <div class="title">${task.title}</div>
+                    <div class="status">
+                        <div id="app-cover">
+                            <div id="select-box-${task.id}">
+                                <div id="select-button-${task.id}" class="brd" data-selected-color="rgba(${hexToRgb(task.status.color_hex)}, 0.3)" data-selected-text-color="#${task.status.color_hex}">
+                                    <div id="selected-value-${task.id}">
+                                        <span class="selected-status">${task.status.name}</span>
+                                    </div>
+                                </div>
+                                <div id="options-${task.id}" class="options">
+                                    ${task.statuses.map(status => `
+                                        <div class="option" data-status-id="${status.id}" style="background-color: rgba(${hexToRgb(status.color_hex)}, 0.3); color: #${status.color_hex};">
+                                            <input class="s-c" type="radio" name="status-${task.id}" value="${status.id}">
+                                            <span class="label">${status.name}</span>
+                                            <span class="opt-val">${status.name}</span>
+                                        </div>
+                                    `).join('')}
+                                    <div id="option-bg"></div>
                                 </div>
                             </div>
-                            <div id="options-${task.id}" class="options">
-                                ${task.statuses.map(status => `
-                                    <div class="option" data-status-id="${status.id}" style="background-color: rgba(${hexToRgb(status.color_hex)}, 0.3); color: #${status.color_hex};">
-                                        <input class="s-c" type="radio" name="status-${task.id}" value="${status.id}">
-                                        <span class="label">${status.name}</span>
-                                        <span class="opt-val">${status.name}</span>
-                                    </div>
-                                `).join('')}
-                                <div id="option-bg"></div>
-                            </div>
                         </div>
+                    </div>
+                </div>
+                <div class="task-bottom-header">
+                    <div class="deadline">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 374.999991" fill="#${task.urgency.color_hex}" class="task-card-icon">
+                            <path fill="#FFFFFF" d="M 0 75.894531 C 0 51.238281 19.988281 31.25 44.644531 31.25 L 330.355469 31.25 C 355.011719 31.25 375 51.238281 375 75.894531 L 375 111.605469 C 375 116.539062 371 120.535156 366.070312 120.535156 L 8.929688 120.535156 C 3.996094 120.535156 0 116.539062 0 111.605469 Z M 44.644531 49.105469 C 29.847656 49.105469 17.855469 61.097656 17.855469 75.894531 L 17.855469 102.679688 L 357.144531 102.679688 L 357.144531 75.894531 C 357.144531 61.097656 345.148438 49.105469 330.355469 49.105469 Z M 44.644531 49.105469 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 0 111.605469 C 0 106.675781 3.996094 102.679688 8.929688 102.679688 L 366.070312 102.679688 C 371 102.679688 375 106.675781 375 111.605469 L 375 147.320312 L 357.144531 147.320312 L 357.144531 120.535156 L 17.855469 120.535156 L 17.855469 325.894531 C 17.855469 340.6875 29.847656 352.679688 44.644531 352.679688 L 151.785156 352.679688 L 151.785156 370.535156 L 44.644531 370.535156 C 19.988281 370.535156 0 350.546875 0 325.894531 Z M 0 111.605469 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 178.570312 4.464844 L 196.429688 4.464844 L 196.429688 58.035156 L 178.570312 58.035156 Z M 178.570312 4.464844 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 267.855469 4.464844 L 285.714844 4.464844 L 285.714844 58.035156 L 267.855469 58.035156 Z M 267.855469 4.464844 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 89.285156 4.464844 L 107.144531 4.464844 L 107.144531 58.035156 L 89.285156 58.035156 Z M 89.285156 4.464844 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 232.144531 218.75 C 232.144531 213.820312 236.140625 209.820312 241.070312 209.820312 L 330.355469 209.820312 C 335.289062 209.820312 339.285156 213.820312 339.285156 218.75 L 339.285156 238.65625 C 339.285156 244.335938 338.203125 249.964844 336.09375 255.238281 L 320.789062 293.496094 C 319.433594 296.882812 316.152344 299.105469 312.5 299.105469 L 258.929688 299.105469 C 255.277344 299.105469 251.996094 296.882812 250.640625 293.496094 L 235.335938 255.238281 C 233.226562 249.964844 232.144531 244.335938 232.144531 238.65625 Z M 250 227.679688 L 250 238.65625 C 250 242.066406 250.648438 245.441406 251.917969 248.605469 L 264.972656 281.25 L 306.457031 281.25 L 319.511719 248.605469 C 320.777344 245.441406 321.429688 242.066406 321.429688 238.65625 L 321.429688 227.679688 Z M 250 227.679688 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 232.144531 361.605469 C 232.144531 366.539062 236.140625 370.535156 241.070312 370.535156 L 330.355469 370.535156 C 335.289062 370.535156 339.285156 366.539062 339.285156 361.605469 L 339.285156 341.699219 C 339.285156 336.019531 338.203125 330.394531 336.09375 325.121094 L 320.789062 286.863281 C 319.433594 283.472656 316.152344 281.25 312.5 281.25 L 258.929688 281.25 C 255.277344 281.25 251.996094 283.472656 250.640625 286.863281 L 235.335938 325.121094 C 233.226562 330.394531 232.144531 336.019531 232.144531 341.699219 Z M 250 352.679688 L 250 341.699219 C 250 338.292969 250.648438 334.917969 251.917969 331.75 L 264.972656 299.105469 L 306.457031 299.105469 L 319.511719 331.75 C 320.777344 334.917969 321.429688 338.292969 321.429688 341.699219 L 321.429688 352.679688 Z M 250 352.679688 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 205.355469 209.820312 L 366.070312 209.820312 L 366.070312 227.679688 L 205.355469 227.679688 Z M 205.355469 209.820312 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 205.355469 352.679688 L 366.070312 352.679688 L 366.070312 370.535156 L 205.355469 370.535156 Z M 205.355469 352.679688 " fill-opacity="1" fill-rule="evenodd"/>
+                        </svg>
+                        <span class="deadline-date">${formatDateToMonthDay(task.deadline)}</span>
                     </div>
                 </div>
             </div>
@@ -621,16 +656,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         </svg>
                         <span style="color:#${task.effort.color_hex};">${task.effort.name}</span>
                     </div>
-                    <div class="progress-tracking task-rating">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 374.999991" fill="#219653" class="task-card-icon">
+                    <div class="time-tracking task-rating" title="${daysLeft} days left">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 374.999991" fill="${deadlineColor}" class="task-card-icon">
                             <path d="M 328.125 46.875 C 328.125 33.75 317.8125 23.4375 304.6875 23.4375 L 257.8125 23.4375 L 257.8125 11.71875 C 257.8125 5.25 252.5625 0 246.09375 0 L 222.65625 0 C 216.1875 0 210.9375 5.25 210.9375 11.71875 L 210.9375 23.4375 L 117.1875 23.4375 L 117.1875 11.71875 C 117.1875 5.25 111.9375 0 105.46875 0 L 82.03125 0 C 75.5625 0 70.3125 5.25 70.3125 11.71875 L 70.3125 23.4375 L 23.4375 23.4375 C 10.3125 23.4375 0 33.75 0 46.875 L 0 117.1875 L 328.125 117.1875 Z M 328.125 46.875 " fill-opacity="1" fill-rule="nonzero"/><path d="M 269.53125 140.625 L 0 140.625 L 0 304.6875 C 0 317.8125 10.3125 328.125 23.4375 328.125 L 154.804688 328.125 C 145.804688 310.523438 140.625 290.648438 140.625 269.53125 C 140.625 198.328125 198.328125 140.625 269.53125 140.625 Z M 269.53125 140.625 " fill-opacity="1" fill-rule="nonzero"/><path d="M 269.53125 164.0625 C 211.289062 164.0625 164.0625 211.289062 164.0625 269.53125 C 164.0625 327.773438 211.289062 375 269.53125 375 C 327.773438 375 375 327.773438 375 269.53125 C 375 211.289062 327.773438 164.0625 269.53125 164.0625 Z M 316.40625 281.25 L 269.53125 281.25 C 263.0625 281.25 257.8125 276 257.8125 269.53125 L 257.8125 222.65625 C 257.8125 216.1875 263.0625 210.9375 269.53125 210.9375 C 276 210.9375 281.25 216.1875 281.25 222.65625 L 281.25 257.8125 L 316.40625 257.8125 C 322.875 257.8125 328.125 263.0625 328.125 269.53125 C 328.125 276 322.875 281.25 316.40625 281.25 Z M 316.40625 281.25 " fill-opacity="1" fill-rule="nonzero"/>
                         </svg>
-                        <span style="color:#219653;">On Track</span>
+                        <span style="color:${deadlineColor};">${deadlineStatus}</span>
                     </div>
                 </div>
             </div>
         `;
-
+    
         // Add event listeners for custom dropdown
         const selectBox = taskElement.querySelector(`#select-box-${task.id}`);
         const selectButton = taskElement.querySelector(`#select-button-${task.id}`);
@@ -639,12 +674,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const cardStatus = taskElement.querySelector(`#selected-value-${task.id} span`);
         cardStatus.style.backgroundColor = `rgba(${hexToRgb(task.status.color_hex)}, 0.3)`;
         cardStatus.style.color = `#${task.status.color_hex}`;
-
+    
         selectedValue.addEventListener('click', (event) => {
             event.stopPropagation();
             optionsContainer.classList.toggle('active');
         });
-
+    
         optionsContainer.querySelectorAll('.option').forEach(option => {
             option.addEventListener('click', (event) => {
                 const newStatusId = event.currentTarget.dataset.statusId;
@@ -657,22 +692,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 optionsContainer.classList.remove('active');
             });
         });
-
+    
         window.addEventListener('click', function(event) {
             if (!selectBox.contains(event.target)) {
                 optionsContainer.classList.remove('active');
             }
         });
-
+    
         // Add event listener for opening edit modal
         taskElement.addEventListener('click', function(event) {
             if (!event.target.closest('.status')) { // Prevent opening modal when clicking on status dropdown
                 openEditTaskModal(task.id); // Use task.id directly
             }
         });
-
+    
         return taskElement;
-    }
+    }    
 
     // Function to populate select options
     function populateSelectOptions(selectElement, options, selectedId) {
@@ -844,5 +879,35 @@ document.addEventListener('DOMContentLoaded', function() {
         let g = (bigint >> 8) & 255;
         let b = bigint & 255;
         return `${r},${g},${b}`;
+    }
+
+    function calculateDaysLeft(deadline) {
+        const today = new Date();
+        const deadlineDate = new Date(deadline);
+        const timeDiff = deadlineDate - today;
+        const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        return daysLeft;
+    }
+    
+    function getDeadlineColor(deadline) {
+        const daysLeft = calculateDaysLeft(deadline);
+        if (daysLeft > 2) {
+            return '#219653';
+        } else if (daysLeft >= 0 && daysLeft <= 2) {
+            return '#F2C94C';
+        } else {
+            return '#EB5757';
+        }
+    }
+    
+    function getDeadlineStatus(deadline) {
+        const daysLeft = calculateDaysLeft(deadline);
+        if (daysLeft > 2) {
+            return 'On Track';
+        } else if (daysLeft >= 0 && daysLeft <= 2) {
+            return 'Attention';
+        } else {
+            return 'Overdue';
+        }
     }
 });
