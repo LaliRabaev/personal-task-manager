@@ -35,7 +35,7 @@ function showContextMenu(event) {
     const menuWidth = contextMenu.offsetWidth;
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
-    
+
     let top = event.clientY;
     let left = event.clientX;
 
@@ -59,7 +59,7 @@ function showContextMenu(event) {
         starIcon.src = unstarredIconUrl;
         starText.textContent = 'Star';
     }
-    
+
     contextMenu.classList.add('active');
 }
 
@@ -126,8 +126,7 @@ document.getElementById('file-input').addEventListener('change', function(event)
 // Handle tag search and selection
 document.getElementById('note-input').addEventListener('input', function(event) {
     const input = event.target.value;
-    const tagDropdown = document.getElementById('tag-dropdown');
-    
+    const tagDropdown = document.getElementById('note-tag-dropdown');
 
     if (input.includes('#')) {
         const tagSearch = input.split('#').pop();
@@ -145,7 +144,7 @@ document.getElementById('note-input').addEventListener('input', function(event) 
                         const selectedTag = document.createElement('span');
                         selectedTag.textContent = tag.name;
                         selectedTag.className = 'selected-tag';
-                        document.getElementById('selected-tags').appendChild(selectedTag); // Append to selected tags container
+                        document.getElementById('note-selected-tags').appendChild(selectedTag); // Append to selected tags container
                         event.target.value = event.target.value.replace(`#${tagSearch}`, '').trim() + ' ';
                         tagDropdown.innerHTML = '';
                     });
@@ -157,6 +156,7 @@ document.getElementById('note-input').addEventListener('input', function(event) 
             }
         })
         .catch(error => {
+            console.error('Error fetching tags:', error);
         });
     } else {
         tagDropdown.style.display = 'none';
@@ -170,7 +170,7 @@ document.getElementById('notes-form').addEventListener('submit', function(event)
     const submitButton = document.querySelector('#notes-form button[type="submit"]');
     const feedbackMessage = document.getElementById('feedback-message');
     const fileInput = document.getElementById('file-input');
-    const selectedTags = Array.from(document.querySelectorAll('.selected-tag')).map(tag => tag.textContent.trim());
+    const selectedTags = Array.from(document.querySelectorAll('#note-selected-tags .selected-tag')).map(tag => tag.textContent.trim());
 
     if (!noteText && !fileInput.files.length) {
         feedbackMessage.textContent = 'Note content or image must be provided.';
@@ -253,7 +253,7 @@ document.getElementById('notes-form').addEventListener('submit', function(event)
                 document.getElementById('notes-list').appendChild(noteElement);
                 document.getElementById('note-input').value = '';
                 fileInput.value = ''; // Clear the file input
-                document.getElementById('selected-tags').innerHTML = ''; // Clear selected tags
+                document.getElementById('note-selected-tags').innerHTML = ''; // Clear selected tags
             } else {
                 feedbackMessage.textContent = 'Error saving note: ' + data.message;
             }
@@ -271,30 +271,38 @@ document.getElementById('notes-form').addEventListener('submit', function(event)
 // Close the dropdown when clicking outside
 document.addEventListener('click', function(event) {
     if (!event.target.closest('.input-container')) {
-        document.getElementById('tag-dropdown').style.display = 'none';
+        const noteTagDropdown = document.getElementById('note-tag-dropdown');
+        const taskTagDropdown = document.getElementById('task-tag-dropdown');
+        if (noteTagDropdown) noteTagDropdown.style.display = 'none';
+        if (taskTagDropdown) taskTagDropdown.style.display = 'none';
     }
 });
 
 // Get the modal
 var modal = document.getElementById('image-fullscreen-modal');
-
-// Get the image and insert it inside the modal - use its "alt" text as a caption
 var modalImg = document.getElementById("full-image");
 var captionText = document.getElementById("caption");
-
-// Add event listener to dynamically added images
-document.addEventListener('click', function(event) {
-    if (event.target.classList.contains('note_image')) {
-        modal.style.display = "block";
-        modalImg.src = event.target.src;
-        captionText.innerHTML = event.target.alt;
-    }
-});
-
 var span = document.getElementsByClassName("image-close")[0];
 
-span.onclick = function() {
-    modal.style.display = "none";
+// Ensure modal, modalImg, and captionText are not null
+if (modal && modalImg && captionText) {
+    // Add event listener to dynamically added images
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('note_image')) {
+            modal.style.display = "block";
+            modalImg.src = event.target.src;
+            captionText.innerHTML = event.target.alt;
+        }
+    });
+}
+
+// Ensure span is not null
+if (span) {
+    span.onclick = function() {
+        if (modal) {
+            modal.style.display = "none";
+        }
+    }
 }
 
 // Handle star/unstar action
@@ -436,10 +444,61 @@ document.addEventListener('DOMContentLoaded', function() {
     const editTaskModal = document.getElementById('edit-task-modal');
     const closeEditModalButton = document.querySelector('.modal-close-edit');
     const editTaskForm = document.getElementById('edit-task-form');
-    const tagInput = document.getElementById('task-tags');
-    const selectedTagsContainer = document.getElementById('selected-tags');
-    const tagDropdown = document.getElementById('task-tag-dropdown');
+    const taskTagInput = document.getElementById('task-tags');
+    const taskSelectedTagsContainer = document.getElementById('task-selected-tags');
+    const taskTagDropdown = document.getElementById('task-tag-dropdown');
     let allTags = [];
+
+    function initializeTagDropdown(tagInputId, selectedTagsContainerId) {
+        const tagInput = document.getElementById(tagInputId);
+        const selectedTagsContainer = document.getElementById(selectedTagsContainerId);
+        const tagDropdown = document.getElementById('task-tag-dropdown');
+
+        tagInput.addEventListener('input', function() {
+            const query = tagInput.value.trim();
+            if (query.length > 0) {
+                fetch(`/tags?query=${query}`)
+                    .then(response => response.json())
+                    .then(tags => {
+                        tagDropdown.innerHTML = '';
+                        tags.forEach(tag => {
+                            const tagItem = document.createElement('div');
+                            tagItem.className = 'tag-item';
+                            tagItem.textContent = tag.name;
+                            tagItem.dataset.id = tag.id;
+                            tagItem.style.backgroundColor = tag.color_hex;
+                            tagDropdown.appendChild(tagItem);
+
+                            tagItem.addEventListener('click', function() {
+                                addTag(tag.name, tag.id, tag.color_hex);
+                                tagInput.value = '';
+                                tagDropdown.innerHTML = '';
+                            });
+                        });
+                        tagDropdown.style.display = 'block';
+                    })
+                    .catch(error => console.error('Error fetching tags:', error));
+            } else {
+                tagDropdown.style.display = 'none';
+            }
+        });
+
+        function addTag(tagName, tagId, tagColor) {
+            const existingTag = selectedTagsContainer.querySelector(`.selected-tag[data-id="${tagId}"]`);
+            if (!existingTag) {
+                const tagElement = document.createElement('span');
+                tagElement.className = 'selected-tag';
+                tagElement.textContent = tagName;
+                tagElement.dataset.id = tagId;
+                tagElement.style.backgroundColor = tagColor;
+                selectedTagsContainer.appendChild(tagElement);
+
+                tagElement.addEventListener('click', function() {
+                    selectedTagsContainer.removeChild(tagElement);
+                });
+            }
+        }
+    }
 
     // Fetch all tags initially
     fetch('/tags')
@@ -453,20 +512,34 @@ document.addEventListener('DOMContentLoaded', function() {
     if (addTaskButton) {
         addTaskButton.addEventListener('click', function() {
             console.log('Add Task button clicked');
-            taskModal.style.display = 'block';
-            initializeTagDropdown('task-tags', 'selected-tags');
+            if (taskModal) {
+                console.log('taskModal exists');
+                taskModal.style.display = 'block';
+            } else {
+                console.error('taskModal is null');
+            }
+            initializeTagDropdown('task-tags', 'task-selected-tags');
             fetchSelectOptions('/urgencies', document.getElementById('urgency_id'));
             fetchSelectOptions('/efforts', document.getElementById('effort_id'));
         });
+    } else {
+        console.error('addTaskButton is null');
     }
 
     // Close the Add Task Modal
     if (closeModalButton) {
         closeModalButton.addEventListener('click', function() {
             console.log('Close Modal button clicked');
-            taskModal.style.display = 'none';
+            if (taskModal) {
+                console.log('taskModal exists');
+                taskModal.style.display = 'none';
+            } else {
+                console.error('taskModal is null');
+            }
             resetForm();
         });
+    } else {
+        console.error('closeModalButton is null');
     }
 
     // Handle Add Task Form Submission
@@ -479,8 +552,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const deadline = document.getElementById('deadline').value;
             const urgencyId = document.getElementById('urgency_id').value;
             const effortId = document.getElementById('effort_id').value;
-            const selectedTags = Array.from(document.querySelectorAll('#selected-tags .selected-tag')).map(tag => tag.dataset.id);
-            const newTags = tagInput.value.trim().split(',');
+            const selectedTags = Array.from(document.querySelectorAll('#task-selected-tags .selected-tag')).map(tag => tag.dataset.id);
+            const newTags = taskTagInput.value.trim().split(',');
 
             if (!title || !description || !deadline || !urgencyId || !effortId) {
                 alert('Please fill out all required fields.');
@@ -510,7 +583,12 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     console.log('Task added successfully');
-                    taskModal.style.display = 'none';
+                    if (taskModal) {
+                        console.log('taskModal exists');
+                        taskModal.style.display = 'none';
+                    } else {
+                        console.error('taskModal is null');
+                    }
                     fetchTasks(); // Refresh tasks
                     resetForm(); // Reset the form after task creation
                 } else {
@@ -519,14 +597,23 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => console.error('Error:', error));
         });
+    } else {
+        console.error('taskForm is null');
     }
 
     // Close the Edit Task Modal
     if (closeEditModalButton) {
         closeEditModalButton.addEventListener('click', function() {
             console.log('Close Edit Modal button clicked');
-            editTaskModal.style.display = 'none';
+            if (editTaskModal) {
+                console.log('editTaskModal exists');
+                editTaskModal.style.display = 'none';
+            } else {
+                console.error('editTaskModal is null');
+            }
         });
+    } else {
+        console.error('closeEditModalButton is null');
     }
 
     // Handle Edit Task Form Submission
@@ -571,7 +658,12 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     console.log('Task edited successfully');
-                    editTaskModal.style.display = 'none';
+                    if (editTaskModal) {
+                        console.log('editTaskModal exists');
+                        editTaskModal.style.display = 'none';
+                    } else {
+                        console.error('editTaskModal is null');
+                    }
                     fetchTasks(); // Refresh tasks
                 } else {
                     console.error('Error editing task:', data.error);
@@ -579,12 +671,18 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => console.error('Error:', error));
         });
+    } else {
+        console.error('editTaskForm is null');
     }
 
     function resetForm() {
         console.log('Resetting form');
-        document.getElementById('create-task-form').reset();
-        selectedTagsContainer.innerHTML = '';
+        if (taskForm) {
+            taskForm.reset();
+        }
+        if (taskSelectedTagsContainer) {
+            taskSelectedTagsContainer.innerHTML = '';
+        }
     }
 
     function populateDropdown(url, elementId) {
@@ -603,7 +701,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => console.error(`Error fetching ${elementId} options:`, error));
     }
 
-    // function for task deadline
+    // Function for task deadline
     function getDaySuffix(day) {
         if (day > 3 && day < 21) return 'th';
         switch (day % 10) {
@@ -797,7 +895,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to fetch and populate select options
-    function fetchSelectOptions(url, selectElement, selectedIds) {
+    function fetchSelectOptions(url, selectElement, selectedIds = []) {
         fetch(url)
             .then(response => response.json())
             .then(data => {
@@ -829,9 +927,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('edit-deadline').value = task.deadline.split('T')[0]; // Format date properly
 
                 // Populate urgency, effort, and status dropdowns dynamically
-                fetchSelectOptions('/urgencies', document.getElementById('edit-urgency_id'), task.urgency_id);
-                fetchSelectOptions('/efforts', document.getElementById('edit-effort_id'), task.effort_id);
-                fetchSelectOptions('/statuses', document.getElementById('edit-status_id'), task.status.id);
+                fetchSelectOptions('/urgencies', document.getElementById('edit-urgency_id'), [task.urgency_id]);
+                fetchSelectOptions('/efforts', document.getElementById('edit-effort_id'), [task.effort_id]);
+                fetchSelectOptions('/statuses', document.getElementById('edit-status_id'), [task.status.id]);
 
                 // Open the modal
                 document.getElementById('edit-task-modal').style.display = 'block';
@@ -979,79 +1077,49 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function initializeTagDropdown(inputId, containerId) {
-        const tagInput = document.getElementById(inputId);
-        const selectedTagsContainer = document.getElementById(containerId);
-        const tagDropdown = document.getElementById(`${inputId}-dropdown`);
-        
-        if (!tagDropdown) {
-            const dropdown = document.createElement('div');
-            dropdown.id = `${inputId}-dropdown`;
-            dropdown.className = 'dropdown-content';
-            tagInput.parentNode.appendChild(dropdown);
-        }
-    
-        tagInput.addEventListener('input', function() {
-            const query = tagInput.value.trim();
-            if (query.length > 0) {
-                fetch(`/tags?query=${query}`)
-                    .then(response => response.json())
-                    .then(tags => {
-                        const dropdown = document.getElementById(`${inputId}-dropdown`);
-                        dropdown.innerHTML = '';
-                        tags.forEach(tag => {
-                            const tagItem = document.createElement('div');
-                            tagItem.className = 'dropdown-item';
-                            tagItem.textContent = tag.name;
-                            tagItem.dataset.id = tag.id;
-                            tagItem.style.backgroundColor = tag.color_hex;
-                            dropdown.appendChild(tagItem);
-    
-                            tagItem.addEventListener('click', function() {
-                                addTagToContainer(tag.name, tag.id, tag.color_hex, selectedTagsContainer);
-                                tagInput.value = '';
-                                dropdown.innerHTML = '';
-                            });
-                        });
-                        dropdown.style.display = 'block';
-                    })
-                    .catch(error => console.error('Error fetching tags:', error));
-            } else {
-                const dropdown = document.getElementById(`${inputId}-dropdown`);
-                dropdown.style.display = 'none';
-            }
-        });
-    }
+    // Tag input and dropdown functionality
+    taskTagInput.addEventListener('input', function() {
+        const query = taskTagInput.value.trim();
+        if (query.length > 0) {
+            fetch(`/tags?query=${query}`)
+                .then(response => response.json())
+                .then(tags => {
+                    taskTagDropdown.innerHTML = '';
+                    tags.forEach(tag => {
+                        const tagItem = document.createElement('div');
+                        tagItem.className = 'tag-item';
+                        tagItem.textContent = tag.name;
+                        tagItem.dataset.id = tag.id;
+                        tagItem.style.backgroundColor = tag.color_hex;
+                        taskTagDropdown.appendChild(tagItem);
 
-    function addTagToContainer(tagName, tagId, tagColor, container) {
-        const existingTag = container.querySelector(`.selected-tag[data-id="${tagId}"]`);
-        if (!existingTag) {
-            const tagElement = document.createElement('span');
-            tagElement.className = 'selected-tag';
-            tagElement.textContent = tagName;
-            tagElement.dataset.id = tagId;
-            tagElement.style.backgroundColor = tagColor;
-            container.appendChild(tagElement);
-    
-            tagElement.addEventListener('click', function() {
-                container.removeChild(tagElement);
-            });
+                        tagItem.addEventListener('click', function() {
+                            addTag(tag.name, tag.id, tag.color_hex);
+                            taskTagInput.value = '';
+                            taskTagDropdown.innerHTML = '';
+                        });
+                    });
+                    taskTagDropdown.style.display = 'block';
+                })
+                .catch(error => console.error('Error fetching tags:', error));
+        } else {
+            taskTagDropdown.style.display = 'none';
         }
-    }
+    });
 
     function addTag(tagName, tagId, tagColor) {
         console.log('Adding tag:', tagName);
-        const existingTag = selectedTagsContainer.querySelector(`.selected-tag[data-id="${tagId}"]`);
+        const existingTag = taskSelectedTagsContainer.querySelector(`.selected-tag[data-id="${tagId}"]`);
         if (!existingTag) {
             const tagElement = document.createElement('span');
             tagElement.className = 'selected-tag';
             tagElement.textContent = tagName;
             tagElement.dataset.id = tagId;
             tagElement.style.backgroundColor = tagColor;
-            selectedTagsContainer.appendChild(tagElement);
+            taskSelectedTagsContainer.appendChild(tagElement);
 
             tagElement.addEventListener('click', function() {
-                selectedTagsContainer.removeChild(tagElement);
+                taskSelectedTagsContainer.removeChild(tagElement);
             });
         }
     }
