@@ -86,11 +86,11 @@ def edit_note(note_id):
         return jsonify(success=True)
     return jsonify(success=False, message="Note not found")
 
-@app.route('/tags')
+@app.route('/tags', methods=['GET'])
 def get_tags():
     query = request.args.get('query', '')
-    tags = TaskTags.query.filter(TaskTags.name.like(f'%{query}%')).all()
-    return jsonify([{'name': tag.name, 'color_hex': tag.color_hex} for tag in tags])
+    tags = TaskTags.query.filter(TaskTags.name.ilike(f"%{query}%")).all()
+    return jsonify([{'id': tag.id, 'name': tag.name, 'color_hex': tag.color_hex} for tag in tags])
 
 @app.route('/delete/<int:note_id>', methods=['POST'])
 def delete_note(note_id):
@@ -138,37 +138,43 @@ def random_quote():
 
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
-    tasks = Tasks.query.all()
-    task_list = []
-    for task in tasks:
-        urgency = TaskUrgency.query.get(task.urgency_id)
-        effort = TaskEffort.query.get(task.effort_id)
-        status = TaskStatuses.query.get(task.status_id)
-        task_list.append({
-            'id': task.id,
-            'order': task.order,
-            'group_id': task.group_id,
-            'title': task.title,
-            'description': task.description,
-            'urgency': {
-                'id': urgency.id,
-                'name': urgency.name,
-                'color_hex': urgency.color_hex
-            },
-            'effort': {
-                'id': effort.id,
-                'name': effort.name,
-                'color_hex': effort.color_hex
-            },
-            'status': {
-                'id': status.id,
-                'name': status.name,
-                'color_hex': status.color_hex
-            },
-            'deadline': task.deadline.isoformat() if task.deadline else None,
-            'statuses': [{'id': s.id, 'name': s.name, 'color_hex': s.color_hex} for s in TaskStatuses.query.all()]
-        })
-    return jsonify(task_list)
+    try:
+        tasks = Tasks.query.all()
+        task_list = []
+        for task in tasks:
+            urgency = TaskUrgency.query.get(task.urgency_id)
+            effort = TaskEffort.query.get(task.effort_id)
+            status = TaskStatuses.query.get(task.status_id)
+            tags = task.tags
+            task_list.append({
+                'id': task.id,
+                'order': task.order,
+                'group_id': task.group_id,
+                'title': task.title,
+                'description': task.description,
+                'urgency': {
+                    'id': urgency.id,
+                    'name': urgency.name,
+                    'color_hex': urgency.color_hex
+                },
+                'effort': {
+                    'id': effort.id,
+                    'name': effort.name,
+                    'color_hex': effort.color_hex
+                },
+                'status': {
+                    'id': status.id,
+                    'name': status.name,
+                    'color_hex': status.color_hex
+                },
+                'tags': [{'id': tag.id, 'name': tag.name, 'color_hex': tag.color_hex} for tag in tags],
+                'deadline': task.deadline.isoformat() if task.deadline else None,
+                'statuses': [{'id': s.id, 'name': s.name, 'color_hex': s.color_hex} for s in TaskStatuses.query.all()]
+            })
+        return jsonify(task_list)
+    except Exception as e:
+        print(f"Error fetching tasks: {e}")
+        return jsonify({'error': 'Error fetching tasks'}), 500
 
 @app.route('/update_task_status/<int:task_id>', methods=['POST'])
 def update_task_status(task_id):
@@ -194,45 +200,39 @@ def update_group_status(group_id):
 
 @app.route('/add_task', methods=['POST'])
 def add_task():
-    try:
-        data = request.get_json()
+    data = request.json
+    title = data.get('title')
+    description = data.get('description')
+    deadline = data.get('deadline')
+    urgency_id = data.get('urgency_id')
+    effort_id = data.get('effort_id')
+    status_id = data.get('status_id', 1)
+    selected_tags = data.get('tags', [])
+    new_tags = data.get('new_tags', [])
 
-        # Check if data is None
-        if data is None:
-            raise ValueError("No data received")
+    task = Tasks(title=title, description=description, deadline=deadline,
+                 urgency_id=urgency_id, effort_id=effort_id, status_id=status_id)
+    db.session.add(task)
+    db.session.commit()
 
-        # Check for required fields
-        required_fields = ['title', 'description', 'deadline', 'urgency_id', 'effort_id']
-        for field in required_fields:
-            if field not in data:
-                raise ValueError(f"Missing required field: {field}")
+    for tag_id in selected_tags:
+        tag = TaskTags.query.get(tag_id)
+        if tag:
+            task.tags.append(tag)
 
-        # Set default values for fields that may not be provided
-        order = data.get('order', 1)  # Default order to 1 if not provided
-        group_id = data.get('group_id', 1)  # Default group_id to 1 if not provided
-        tag_id = data.get('tag_id', 1)  # Default tag_id to 1 (Placeholder)
+    for tag_name in new_tags:
+        existing_tag = TaskTags.query.filter_by(name=tag_name).first()
+        if existing_tag:
+            task.tags.append(existing_tag)
+        else:
+            new_tag = TaskTags(name=tag_name)
+            db.session.add(new_tag)
+            task.tags.append(new_tag)
 
-        # Convert deadline to datetime
-        deadline = datetime.strptime(data['deadline'], '%Y-%m-%dT%H:%M')
+    db.session.commit()
 
-        new_task = Tasks(
-            order=order,
-            group_id=group_id,
-            title=data['title'],
-            description=data['description'],
-            tag_id=tag_id,
-            urgency_id=data['urgency_id'],
-            effort_id=data['effort_id'],
-            status_id=1,  # Assuming 'backlog' status has id 1
-            deadline=deadline,
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
-        db.session.add(new_task)
-        db.session.commit()
-        return jsonify({'success': True, 'task_id': new_task.id})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
+    return jsonify({'success': True, 'task_id': task.id})
+
 
 @app.route('/add_task_step', methods=['POST'])
 def add_task_step():
@@ -278,16 +278,34 @@ def get_task(task_id):
 
 @app.route('/edit_task/<int:task_id>', methods=['POST'])
 def edit_task(task_id):
-    task = Tasks.query.get_or_404(task_id)
     data = request.json
-    task.title = data['title']
-    task.description = data['description']
-    task.deadline = datetime.strptime(data['deadline'], '%Y-%m-%d')
-    task.urgency_id = data['urgency_id']
-    task.effort_id = data['effort_id']
-    task.status_id = data['status_id']
+    task = Tasks.query.get_or_404(task_id)
+
+    task.title = data.get('title')
+    task.description = data.get('description')
+    task.deadline = data.get('deadline')
+    task.urgency_id = data.get('urgency_id')
+    task.effort_id = data.get('effort_id')
+    task.status_id = data.get('status_id')
+
+    # Update tags
+    task.tags = []
+    selected_tags = data.get('tags', [])
+    new_tags = data.get('new_tags', [])
+
+    for tag_id in selected_tags:
+        tag = TaskTags.query.get(tag_id)
+        if tag:
+            task.tags.append(tag)
+
+    for tag_name in new_tags:
+        new_tag = TaskTags(name=tag_name)
+        db.session.add(new_tag)
+        task.tags.append(new_tag)
+
     db.session.commit()
-    return jsonify(success=True)
+
+    return jsonify({'success': True})
 
 @app.route('/urgencies', methods=['GET'])
 def get_urgencies():

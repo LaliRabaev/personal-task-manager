@@ -436,11 +436,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const editTaskModal = document.getElementById('edit-task-modal');
     const closeEditModalButton = document.querySelector('.modal-close-edit');
     const editTaskForm = document.getElementById('edit-task-form');
+    const tagInput = document.getElementById('task-tags');
+    const tagDropdown = document.getElementById('tag-dropdown');
+    let allTags = [];
+
+    // Fetch all tags initially
+    fetch('/tags')
+        .then(response => response.json())
+        .then(data => {
+            allTags = data;
+        });
 
     // Open the Add Task Modal
     if (addTaskButton) {
         addTaskButton.addEventListener('click', function() {
             taskModal.style.display = 'block';
+            initializeTagDropdown('task-tags', 'selected-tags');
+            fetchSelectOptions('/urgencies', document.getElementById('urgency_id'));
+            fetchSelectOptions('/efforts', document.getElementById('effort_id'));
         });
     }
 
@@ -461,6 +474,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const deadline = document.getElementById('deadline').value;
             const urgencyId = document.getElementById('urgency_id').value;
             const effortId = document.getElementById('effort_id').value;
+            const selectedTags = Array.from(document.querySelectorAll('#selected-tags .selected-tag')).map(tag => tag.dataset.id);
+            const newTags = document.getElementById('task-tags').value.trim().split(',');
 
             if (!title || !description || !deadline || !urgencyId || !effortId) {
                 alert('Please fill out all required fields.');
@@ -473,7 +488,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 deadline: deadline,
                 urgency_id: urgencyId,
                 effort_id: effortId,
-                status_id: 1 // Assuming 'backlog' status has id 1
+                status_id: 1, // Assuming 'backlog' status has id 1
+                group_id: 1, // Ensure group_id is always set to 1
+                tags: selectedTags,
+                new_tags: newTags
             };
 
             fetch('/add_task', {
@@ -515,6 +533,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const urgencyId = document.getElementById('edit-urgency_id').value;
             const effortId = document.getElementById('edit-effort_id').value;
             const statusId = document.getElementById('edit-status_id').value;
+            const selectedTags = Array.from(document.querySelectorAll('#edit-selected-tags .selected-tag')).map(tag => tag.dataset.id);
 
             if (!title || !description || !deadline || !urgencyId || !effortId || !statusId) {
                 alert('Please fill out all required fields.');
@@ -527,7 +546,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 deadline: deadline,
                 urgency_id: urgencyId,
                 effort_id: effortId,
-                status_id: statusId
+                status_id: statusId,
+                tags: selectedTags
             };
 
             fetch(`/edit_task/${taskId}`, {
@@ -552,6 +572,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function resetForm() {
         document.getElementById('create-task-form').reset();
+        document.getElementById('task-tags').value = '';
+        document.getElementById('selected-tags').innerHTML = '';
     }
 
     // function for task deadline
@@ -600,11 +622,16 @@ document.addEventListener('DOMContentLoaded', function() {
         taskElement.className = 'task';
         taskElement.dataset.id = task.id;
         taskElement.dataset.groupId = task.group_id;
-    
+
         const daysLeft = calculateDaysLeft(task.deadline);
         const deadlineColor = getDeadlineColor(task.deadline);
         const deadlineStatus = getDeadlineStatus(task.deadline);
-    
+
+        // Fetch the tags for the task
+        const tagsHtml = task.tags.map(tag => `
+            <span class="tag-text" style="background-color: ${tag.color_hex};">${tag.name}</span>
+        `).join('');
+
         taskElement.innerHTML = `
             <div class="task-header">
                 <div class="task-top-header">
@@ -632,6 +659,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
                 <div class="task-bottom-header">
+                    <div class="tags-container">
+                        <div class="tag-background">${tagsHtml}</div>
+                    </div>
                     <div class="deadline">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 374.999991" fill="#${task.urgency.color_hex}" class="task-card-icon">
                             <path fill="#FFFFFF" d="M 0 75.894531 C 0 51.238281 19.988281 31.25 44.644531 31.25 L 330.355469 31.25 C 355.011719 31.25 375 51.238281 375 75.894531 L 375 111.605469 C 375 116.539062 371 120.535156 366.070312 120.535156 L 8.929688 120.535156 C 3.996094 120.535156 0 116.539062 0 111.605469 Z M 44.644531 49.105469 C 29.847656 49.105469 17.855469 61.097656 17.855469 75.894531 L 17.855469 102.679688 L 357.144531 102.679688 L 357.144531 75.894531 C 357.144531 61.097656 345.148438 49.105469 330.355469 49.105469 Z M 44.644531 49.105469 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 0 111.605469 C 0 106.675781 3.996094 102.679688 8.929688 102.679688 L 366.070312 102.679688 C 371 102.679688 375 106.675781 375 111.605469 L 375 147.320312 L 357.144531 147.320312 L 357.144531 120.535156 L 17.855469 120.535156 L 17.855469 325.894531 C 17.855469 340.6875 29.847656 352.679688 44.644531 352.679688 L 151.785156 352.679688 L 151.785156 370.535156 L 44.644531 370.535156 C 19.988281 370.535156 0 350.546875 0 325.894531 Z M 0 111.605469 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 178.570312 4.464844 L 196.429688 4.464844 L 196.429688 58.035156 L 178.570312 58.035156 Z M 178.570312 4.464844 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 267.855469 4.464844 L 285.714844 4.464844 L 285.714844 58.035156 L 267.855469 58.035156 Z M 267.855469 4.464844 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 89.285156 4.464844 L 107.144531 4.464844 L 107.144531 58.035156 L 89.285156 58.035156 Z M 89.285156 4.464844 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 232.144531 218.75 C 232.144531 213.820312 236.140625 209.820312 241.070312 209.820312 L 330.355469 209.820312 C 335.289062 209.820312 339.285156 213.820312 339.285156 218.75 L 339.285156 238.65625 C 339.285156 244.335938 338.203125 249.964844 336.09375 255.238281 L 320.789062 293.496094 C 319.433594 296.882812 316.152344 299.105469 312.5 299.105469 L 258.929688 299.105469 C 255.277344 299.105469 251.996094 296.882812 250.640625 293.496094 L 235.335938 255.238281 C 233.226562 249.964844 232.144531 244.335938 232.144531 238.65625 Z M 250 227.679688 L 250 238.65625 C 250 242.066406 250.648438 245.441406 251.917969 248.605469 L 264.972656 281.25 L 306.457031 281.25 L 319.511719 248.605469 C 320.777344 245.441406 321.429688 242.066406 321.429688 238.65625 L 321.429688 227.679688 Z M 250 227.679688 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 232.144531 361.605469 C 232.144531 366.539062 236.140625 370.535156 241.070312 370.535156 L 330.355469 370.535156 C 335.289062 370.535156 339.285156 366.539062 339.285156 361.605469 L 339.285156 341.699219 C 339.285156 336.019531 338.203125 330.394531 336.09375 325.121094 L 320.789062 286.863281 C 319.433594 283.472656 316.152344 281.25 312.5 281.25 L 258.929688 281.25 C 255.277344 281.25 251.996094 283.472656 250.640625 286.863281 L 235.335938 325.121094 C 233.226562 330.394531 232.144531 336.019531 232.144531 341.699219 Z M 250 352.679688 L 250 341.699219 C 250 338.292969 250.648438 334.917969 251.917969 331.75 L 264.972656 299.105469 L 306.457031 299.105469 L 319.511719 331.75 C 320.777344 334.917969 321.429688 338.292969 321.429688 341.699219 L 321.429688 352.679688 Z M 250 352.679688 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 205.355469 209.820312 L 366.070312 209.820312 L 366.070312 227.679688 L 205.355469 227.679688 Z M 205.355469 209.820312 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 205.355469 352.679688 L 366.070312 352.679688 L 366.070312 370.535156 L 205.355469 370.535156 Z M 205.355469 352.679688 " fill-opacity="1" fill-rule="evenodd"/>
@@ -654,7 +684,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 374.999991" fill="#${task.effort.color_hex}" class="task-card-icon">
                             <path d="M 369.699219 110.742188 L 341.371094 82.414062 C 338.777344 79.820312 338.777344 75.632812 341.371094 73.039062 C 352.203125 62.65625 352.21875 43.964844 341.371094 33.671875 C 331.050781 22.785156 312.34375 22.851562 302.003906 33.671875 C 299.542969 36.132812 295.089844 36.132812 292.628906 33.671875 C 292.628906 33.671875 264.300781 5.34375 264.300781 5.34375 C 259.113281 0.0898438 250.136719 0.15625 244.949219 5.34375 L 216.621094 33.605469 C 214.027344 36.199219 209.835938 36.199219 207.242188 33.605469 C 196.335938 22.765625 178.714844 22.765625 167.808594 33.605469 C 156.96875 44.511719 156.96875 62.132812 167.808594 73.039062 C 170.515625 75.726562 170.359375 80.132812 167.542969 82.679688 C 167.542969 82.679688 139.546875 110.742188 139.546875 110.742188 C 134.167969 115.777344 134.203125 125.007812 139.546875 130.09375 C 139.546875 130.09375 163.488281 154.035156 163.488281 154.035156 C 179.578125 142.53125 202.1875 143.992188 216.621094 158.355469 C 231.050781 172.851562 232.511719 195.464844 220.941406 211.554688 L 244.949219 235.496094 C 250.269531 240.882812 258.980469 240.882812 264.300781 235.496094 L 288.304688 211.554688 C 276.519531 195.84375 278.417969 172.046875 292.628906 158.355469 C 307.058594 143.992188 329.667969 142.53125 345.695312 154.035156 L 369.699219 130.09375 C 374.972656 124.992188 375.015625 115.835938 369.699219 110.742188 Z M 369.699219 110.742188 " fill-opacity="1" fill-rule="nonzero"/><path d="M 207.175781 216.675781 C 204.53125 214.070312 204.632812 209.734375 207.242188 207.234375 C 232.390625 180.308594 194.75 142.625 167.808594 167.800781 C 165.214844 170.394531 161.027344 170.394531 158.367188 167.800781 L 130.105469 139.472656 C 124.984375 134.351562 115.875 134.351562 110.753906 139.472656 L 86.746094 163.476562 C 113.550781 201.597656 67.054688 247.359375 29.359375 220.933594 C 29.359375 220.933594 5.351562 244.9375 5.351562 244.9375 C -0.0234375 250.046875 0 259.171875 5.351562 264.289062 C 5.351562 264.289062 8.144531 267.148438 8.144531 267.148438 C 8.210938 267.214844 8.210938 267.28125 8.277344 267.28125 C 8.222656 267.332031 29.289062 288.152344 29.292969 288.230469 C 44.996094 276.566406 68.816406 278.359375 82.425781 292.617188 C 96.660156 306.242188 98.492188 330.011719 86.8125 345.683594 C 86.8125 345.683594 110.753906 369.625 110.753906 369.625 C 115.941406 374.878906 124.917969 374.878906 130.105469 369.691406 L 158.367188 341.363281 C 161.027344 338.769531 165.214844 338.769531 167.808594 341.363281 C 178.648438 352.269531 196.402344 352.269531 207.242188 341.363281 C 218.082031 330.523438 218.082031 312.902344 207.242188 301.996094 C 204.648438 299.402344 204.648438 295.210938 207.242188 292.617188 L 235.503906 264.355469 C 238.03125 261.761719 239.496094 258.304688 239.496094 254.648438 C 239.496094 250.988281 238.03125 247.597656 235.503906 245.003906 Z M 207.175781 216.675781 " fill-opacity="1" fill-rule="nonzero"/>
                         </svg>
-                        <span style="color:#${task.effort.color_hex};">${task.effort.name}</span>
+                        <span style="color:#${task.urgency.color_hex};">${task.urgency.name}</span>
                     </div>
                     <div class="time-tracking task-rating" title="${daysLeft} days left">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 374.999991" fill="${deadlineColor}" class="task-card-icon">
@@ -665,7 +695,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         `;
-    
+
         // Add event listeners for custom dropdown
         const selectBox = taskElement.querySelector(`#select-box-${task.id}`);
         const selectButton = taskElement.querySelector(`#select-button-${task.id}`);
@@ -674,12 +704,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const cardStatus = taskElement.querySelector(`#selected-value-${task.id} span`);
         cardStatus.style.backgroundColor = `rgba(${hexToRgb(task.status.color_hex)}, 0.3)`;
         cardStatus.style.color = `#${task.status.color_hex}`;
-    
+
         selectedValue.addEventListener('click', (event) => {
             event.stopPropagation();
             optionsContainer.classList.toggle('active');
         });
-    
+
         optionsContainer.querySelectorAll('.option').forEach(option => {
             option.addEventListener('click', (event) => {
                 const newStatusId = event.currentTarget.dataset.statusId;
@@ -692,22 +722,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 optionsContainer.classList.remove('active');
             });
         });
-    
+
         window.addEventListener('click', function(event) {
             if (!selectBox.contains(event.target)) {
                 optionsContainer.classList.remove('active');
             }
         });
-    
+
         // Add event listener for opening edit modal
         taskElement.addEventListener('click', function(event) {
             if (!event.target.closest('.status')) { // Prevent opening modal when clicking on status dropdown
                 openEditTaskModal(task.id); // Use task.id directly
             }
         });
-    
+
         return taskElement;
-    }    
+    }
 
     // Function to populate select options
     function populateSelectOptions(selectElement, options, selectedId) {
@@ -738,11 +768,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to fetch and populate select options
-    function fetchSelectOptions(url, selectElement, selectedId) {
+    function fetchSelectOptions(url, selectElement, selectedIds = []) {
         fetch(url)
             .then(response => response.json())
             .then(data => {
-                populateSelectOptions(selectElement, data, selectedId);
+                selectElement.innerHTML = ''; // Clear existing options
+                data.forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option.id;
+                    opt.textContent = option.name;
+                    if (selectedIds.includes(option.id)) {
+                        opt.selected = true;
+                    }
+                    selectElement.appendChild(opt);
+                });
             })
             .catch(error => console.error('Error fetching select options:', error));
     }
@@ -761,9 +800,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('edit-deadline').value = task.deadline.split('T')[0]; // Format date properly
 
                 // Populate urgency, effort, and status dropdowns dynamically
-                fetchSelectOptions('/urgencies', document.getElementById('edit-urgency_id'), task.urgency_id);
-                fetchSelectOptions('/efforts', document.getElementById('edit-effort_id'), task.effort_id);
-                fetchSelectOptions('/statuses', document.getElementById('edit-status_id'), task.status.id);
+                fetchSelectOptions('/urgencies', document.getElementById('edit-urgency_id'), [task.urgency_id]);
+                fetchSelectOptions('/efforts', document.getElementById('edit-effort_id'), [task.effort_id]);
+                fetchSelectOptions('/statuses', document.getElementById('edit-status_id'), [task.status.id]);
 
                 // Open the modal
                 document.getElementById('edit-task-modal').style.display = 'block';
@@ -835,7 +874,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => console.error('Error:', error));
     }
-    
+
     // Event listener for group title click to toggle visibility
     document.addEventListener('click', function (event) {
         if (event.target.classList.contains('group-title')) {
@@ -910,4 +949,58 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'Overdue';
         }
     }
+
+    // Tag-related functionality
+    function initializeTagDropdown(inputId, containerId) {
+        const tagInput = document.getElementById(inputId);
+        const tagContainer = document.getElementById(containerId);
+        tagInput.addEventListener('input', function() {
+            const query = tagInput.value;
+            if (query.length > 0) {
+                fetchTags(query).then(tags => {
+                    displayTagSuggestions(tags, tagContainer, tagInput);
+                });
+            } else {
+                tagContainer.innerHTML = '';
+            }
+        });
+    }
+
+    function fetchTags(query) {
+        return fetch(`/tags?query=${query}`)
+            .then(response => response.json())
+            .catch(error => {
+                console.error('Error fetching tags:', error);
+                return [];
+            });
+    }
+
+    function displayTagSuggestions(tags, container, input) {
+        container.innerHTML = '';
+        tags.forEach(tag => {
+            const tagElement = document.createElement('div');
+            tagElement.className = 'tag-suggestion';
+            tagElement.textContent = tag.name;
+            tagElement.dataset.id = tag.id;
+            tagElement.addEventListener('click', function() {
+                addTagToSelected(tag, input);
+            });
+            container.appendChild(tagElement);
+        });
+    }
+
+    function addTagToSelected(tag, input) {
+        const selectedTagsContainer = document.getElementById(input.dataset.selectedContainer);
+        const selectedTagElement = document.createElement('span');
+        selectedTagElement.className = 'selected-tag';
+        selectedTagElement.textContent = tag.name;
+        selectedTagElement.dataset.id = tag.id;
+        selectedTagElement.addEventListener('click', function() {
+            selectedTagElement.remove();
+        });
+        selectedTagsContainer.appendChild(selectedTagElement);
+        input.value = '';
+        input.nextSibling.innerHTML = '';
+    }
+
 });

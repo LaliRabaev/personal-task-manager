@@ -8,6 +8,11 @@ notes_tags = db.Table('notes_tags',
     db.Column('tag_id', db.Integer, db.ForeignKey('task_tags.id'), primary_key=True)
 )
 
+tasks_tags = db.Table('tasks_tags',
+    db.Column('task_id', db.Integer, db.ForeignKey('tasks.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('task_tags.id'), primary_key=True)
+)
+
 class Notes(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     note_order = db.Column(db.Integer)
@@ -29,21 +34,21 @@ class Tasks(db.Model):
     __tablename__ = 'tasks'
     id = db.Column(db.Integer, primary_key=True)
     order = db.Column(db.Integer)
-    group_id = db.Column(db.Integer, db.ForeignKey('task_groups.id'))
-    title = db.Column(db.String(255))
-    description = db.Column(db.Text)
-    tag_id = db.Column(db.Integer)
+    group_id = db.Column(db.Integer, db.ForeignKey('task_groups.id'), nullable=False, default=1)  # Ensure this is always set
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=False)
     urgency_id = db.Column(db.Integer, db.ForeignKey('task_urgency.id'))
     effort_id = db.Column(db.Integer, db.ForeignKey('task_effort.id'))
     status_id = db.Column(db.Integer, db.ForeignKey('task_statuses.id'))
-    deadline = db.Column(db.DateTime)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    deadline = db.Column(db.DateTime, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     group = db.relationship('TaskGroups', back_populates='tasks')
     status = db.relationship('TaskStatuses', back_populates='tasks')
     urgency = db.relationship('TaskUrgency')
     effort = db.relationship('TaskEffort')
+    tags = db.relationship('TaskTags', secondary=tasks_tags, backref=db.backref('tasks', lazy=True))
 
 class TaskStatuses(db.Model):
     __tablename__ = 'task_statuses'
@@ -96,8 +101,8 @@ class TaskUpdates(db.Model):
 
 class TaskTags(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    color_hex = db.Column(db.String(7))
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    color_hex = db.Column(db.String(7), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class TaskDependencies(db.Model):

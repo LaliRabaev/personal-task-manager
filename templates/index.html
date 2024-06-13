@@ -40,7 +40,7 @@
                                     {% endif %}
                                     <div class="tags-container">
                                         {% for tag in note.tags %}
-                                            <div class="tag-background"><span class="note_tag">{{ tag.name }}</span></div>
+                                            <div class="tag-background"><span class="tag-text">{{ tag.name }}</span></div>
                                         {% endfor %}
                                     </div>
                                 </div>
@@ -93,76 +93,70 @@
                     <form id="create-task-form">
                         <label for="title">Title</label>
                         <input type="text" id="title" name="title" required>
-            
+                        
                         <label for="description">Description</label>
-                        <input type="text" id="description" name="description" required>
-            
+                        <textarea id="description" name="description" required></textarea>
+                        
                         <label for="deadline">Deadline</label>
                         <input type="datetime-local" id="deadline" name="deadline" required>
-            
+                        
                         <label for="urgency_id">Urgency</label>
                         <select id="urgency_id" name="urgency_id" required>
                             <option value="" disabled selected>Select Urgency</option>
-                            {% for urgency in urgencies %}
-                                <option value="{{ urgency.id }}">{{ urgency.name }}</option>
-                            {% endfor %}
+                            <!-- Options will be populated dynamically -->
                         </select>
-            
+                        
                         <label for="effort_id">Effort</label>
                         <select id="effort_id" name="effort_id" required>
                             <option value="" disabled selected>Select Effort</option>
-                            {% for effort in efforts %}
-                                <option value="{{ effort.id }}">{{ effort.name }}</option>
-                            {% endfor %}
+                            <!-- Options will be populated dynamically -->
                         </select>
-            
+                        
+                        <label for="task-tags">Tags</label>
+                        <input type="text" id="task-tags" name="tags">
+                        <div id="tag-dropdown" class="dropdown-content"></div>
+                        <div id="selected-tags"></div>
+                        
                         <button type="submit" class="primary-button create-task-button">Add Task</button>
                     </form>
                 </div>
             </div>
             <div id="edit-task-modal" class="modal">
                 <div class="modal-content">
-                    <span class="modal-close modal-close-edit">&times;</span>
+                    <span class="modal-close-edit">&times;</span>
                     <h2>Edit Task</h2>
                     <form id="edit-task-form">
                         <input type="hidden" id="edit-task-id">
-                        <div>
-                            <label for="edit-title">Title</label>
-                            <input type="text" id="edit-title" required>
-                        </div>
-                        <div>
-                            <label for="edit-description">Description</label>
-                            <textarea id="edit-description" required></textarea>
-                        </div>
-                        <div>
-                            <label for="edit-deadline">Deadline</label>
-                            <input type="date" id="edit-deadline" required>
-                        </div>
-                        <div>
-                            <label for="edit-urgency_id">Urgency</label>
-                            <select id="edit-urgency_id" required>
-                                <!-- Options will be populated dynamically -->
-                            </select>
-                        </div>
-                        <div>
-                            <label for="edit-effort_id">Effort</label>
-                            <select id="edit-effort_id" required>
-                                <!-- Options will be populated dynamically -->
-                            </select>
-                        </div>
-                        <div>
-                            <label for="edit-status_id">Status</label>
-                            <select id="edit-status_id" required>
-                                <!-- Options will be populated dynamically -->
-                            </select>
-                        </div>
-                        <div class="buttons-row">
-                            <button type="submit" class="primary-button">Save</button>
-                            <button type="button" id="delete-task-button" class="delete-task-button">Delete</button>
-                        </div>
+                        
+                        <label for="edit-title">Title</label>
+                        <input type="text" id="edit-title" required>
+                        
+                        <label for="edit-description">Description</label>
+                        <textarea id="edit-description" required></textarea>
+                        
+                        <label for="edit-deadline">Deadline</label>
+                        <input type="datetime-local" id="edit-deadline" required>
+                        
+                        <label for="edit-urgency_id">Urgency</label>
+                        <select id="edit-urgency_id" required>
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                        
+                        <label for="edit-effort_id">Effort</label>
+                        <select id="edit-effort_id" required>
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                        
+                        <label for="edit-task-tags">Tags</label>
+                        <input type="text" id="edit-task-tags" name="tags">
+                        <div id="edit-tag-dropdown" class="dropdown-content"></div>
+                        <div id="edit-selected-tags"></div>
+                        
+                        <button type="submit" class="primary-button">Save</button>
+                        <button type="button" id="delete-task-button" class="delete-task-button">Delete</button>
                     </form>
                 </div>
-            </div>            
+            </div>         
         <div id="context-menu" class="context-menu">
             <ul>
                 <li>
