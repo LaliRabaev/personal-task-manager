@@ -437,7 +437,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeEditModalButton = document.querySelector('.modal-close-edit');
     const editTaskForm = document.getElementById('edit-task-form');
     const tagInput = document.getElementById('task-tags');
-    const tagDropdown = document.getElementById('tag-dropdown');
+    const selectedTagsContainer = document.getElementById('selected-tags');
+    const tagDropdown = document.getElementById('task-tag-dropdown');
     let allTags = [];
 
     // Fetch all tags initially
@@ -445,11 +446,13 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             allTags = data;
-        });
+        })
+        .catch(error => console.error('Error fetching all tags:', error));
 
     // Open the Add Task Modal
     if (addTaskButton) {
         addTaskButton.addEventListener('click', function() {
+            console.log('Add Task button clicked');
             taskModal.style.display = 'block';
             initializeTagDropdown('task-tags', 'selected-tags');
             fetchSelectOptions('/urgencies', document.getElementById('urgency_id'));
@@ -460,6 +463,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Close the Add Task Modal
     if (closeModalButton) {
         closeModalButton.addEventListener('click', function() {
+            console.log('Close Modal button clicked');
             taskModal.style.display = 'none';
             resetForm();
         });
@@ -469,13 +473,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (taskForm) {
         taskForm.addEventListener('submit', function(event) {
             event.preventDefault();
+            console.log('Add Task form submitted');
             const title = document.getElementById('title').value.trim();
             const description = document.getElementById('description').value.trim();
             const deadline = document.getElementById('deadline').value;
             const urgencyId = document.getElementById('urgency_id').value;
             const effortId = document.getElementById('effort_id').value;
             const selectedTags = Array.from(document.querySelectorAll('#selected-tags .selected-tag')).map(tag => tag.dataset.id);
-            const newTags = document.getElementById('task-tags').value.trim().split(',');
+            const newTags = tagInput.value.trim().split(',');
 
             if (!title || !description || !deadline || !urgencyId || !effortId) {
                 alert('Please fill out all required fields.');
@@ -504,6 +509,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    console.log('Task added successfully');
                     taskModal.style.display = 'none';
                     fetchTasks(); // Refresh tasks
                     resetForm(); // Reset the form after task creation
@@ -518,6 +524,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Close the Edit Task Modal
     if (closeEditModalButton) {
         closeEditModalButton.addEventListener('click', function() {
+            console.log('Close Edit Modal button clicked');
             editTaskModal.style.display = 'none';
         });
     }
@@ -526,6 +533,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (editTaskForm) {
         editTaskForm.addEventListener('submit', function(event) {
             event.preventDefault();
+            console.log('Edit Task form submitted');
             const taskId = document.getElementById('edit-task-id').value;
             const title = document.getElementById('edit-title').value.trim();
             const description = document.getElementById('edit-description').value.trim();
@@ -534,6 +542,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const effortId = document.getElementById('edit-effort_id').value;
             const statusId = document.getElementById('edit-status_id').value;
             const selectedTags = Array.from(document.querySelectorAll('#edit-selected-tags .selected-tag')).map(tag => tag.dataset.id);
+            const newTags = document.getElementById('edit-task-tags').value.trim().split(',');
 
             if (!title || !description || !deadline || !urgencyId || !effortId || !statusId) {
                 alert('Please fill out all required fields.');
@@ -547,7 +556,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 urgency_id: urgencyId,
                 effort_id: effortId,
                 status_id: statusId,
-                tags: selectedTags
+                tags: selectedTags,
+                new_tags: newTags
             };
 
             fetch(`/edit_task/${taskId}`, {
@@ -560,6 +570,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    console.log('Task edited successfully');
                     editTaskModal.style.display = 'none';
                     fetchTasks(); // Refresh tasks
                 } else {
@@ -571,9 +582,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function resetForm() {
+        console.log('Resetting form');
         document.getElementById('create-task-form').reset();
-        document.getElementById('task-tags').value = '';
-        document.getElementById('selected-tags').innerHTML = '';
+        selectedTagsContainer.innerHTML = '';
+    }
+
+    function populateDropdown(url, elementId) {
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const dropdown = document.getElementById(elementId);
+                dropdown.innerHTML = ''; // Clear existing options
+                data.forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option.id;
+                    opt.textContent = option.name;
+                    dropdown.appendChild(opt);
+                });
+            })
+            .catch(error => console.error(`Error fetching ${elementId} options:`, error));
     }
 
     // function for task deadline
@@ -595,13 +622,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const day = date.getDate();
         const daySuffix = getDaySuffix(day);
         return `${month} ${day}${daySuffix}`;
-    } 
+    }
 
     // Fetch and display tasks
     function fetchTasks() {
         fetch('/tasks')
             .then(response => response.json())
             .then(data => {
+                if (data.error) {
+                    console.error('Error fetching tasks:', data.error);
+                    return;
+                }
                 const taskGroups = document.querySelectorAll('.tasks');
                 taskGroups.forEach(group => group.innerHTML = ''); // Clear current tasks
                 data.forEach(task => {
@@ -616,7 +647,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => console.error('Error fetching tasks:', error));
     }
 
-    // Create a task element
     function createTaskElement(task) {
         const taskElement = document.createElement('div');
         taskElement.className = 'task';
@@ -627,7 +657,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const deadlineColor = getDeadlineColor(task.deadline);
         const deadlineStatus = getDeadlineStatus(task.deadline);
 
-        // Fetch the tags for the task
         const tagsHtml = task.tags.map(tag => `
             <span class="tag-text" style="background-color: ${tag.color_hex};">${tag.name}</span>
         `).join('');
@@ -684,7 +713,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 374.999991" fill="#${task.effort.color_hex}" class="task-card-icon">
                             <path d="M 369.699219 110.742188 L 341.371094 82.414062 C 338.777344 79.820312 338.777344 75.632812 341.371094 73.039062 C 352.203125 62.65625 352.21875 43.964844 341.371094 33.671875 C 331.050781 22.785156 312.34375 22.851562 302.003906 33.671875 C 299.542969 36.132812 295.089844 36.132812 292.628906 33.671875 C 292.628906 33.671875 264.300781 5.34375 264.300781 5.34375 C 259.113281 0.0898438 250.136719 0.15625 244.949219 5.34375 L 216.621094 33.605469 C 214.027344 36.199219 209.835938 36.199219 207.242188 33.605469 C 196.335938 22.765625 178.714844 22.765625 167.808594 33.605469 C 156.96875 44.511719 156.96875 62.132812 167.808594 73.039062 C 170.515625 75.726562 170.359375 80.132812 167.542969 82.679688 C 167.542969 82.679688 139.546875 110.742188 139.546875 110.742188 C 134.167969 115.777344 134.203125 125.007812 139.546875 130.09375 C 139.546875 130.09375 163.488281 154.035156 163.488281 154.035156 C 179.578125 142.53125 202.1875 143.992188 216.621094 158.355469 C 231.050781 172.851562 232.511719 195.464844 220.941406 211.554688 L 244.949219 235.496094 C 250.269531 240.882812 258.980469 240.882812 264.300781 235.496094 L 288.304688 211.554688 C 276.519531 195.84375 278.417969 172.046875 292.628906 158.355469 C 307.058594 143.992188 329.667969 142.53125 345.695312 154.035156 L 369.699219 130.09375 C 374.972656 124.992188 375.015625 115.835938 369.699219 110.742188 Z M 369.699219 110.742188 " fill-opacity="1" fill-rule="nonzero"/><path d="M 207.175781 216.675781 C 204.53125 214.070312 204.632812 209.734375 207.242188 207.234375 C 232.390625 180.308594 194.75 142.625 167.808594 167.800781 C 165.214844 170.394531 161.027344 170.394531 158.367188 167.800781 L 130.105469 139.472656 C 124.984375 134.351562 115.875 134.351562 110.753906 139.472656 L 86.746094 163.476562 C 113.550781 201.597656 67.054688 247.359375 29.359375 220.933594 C 29.359375 220.933594 5.351562 244.9375 5.351562 244.9375 C -0.0234375 250.046875 0 259.171875 5.351562 264.289062 C 5.351562 264.289062 8.144531 267.148438 8.144531 267.148438 C 8.210938 267.214844 8.210938 267.28125 8.277344 267.28125 C 8.222656 267.332031 29.289062 288.152344 29.292969 288.230469 C 44.996094 276.566406 68.816406 278.359375 82.425781 292.617188 C 96.660156 306.242188 98.492188 330.011719 86.8125 345.683594 C 86.8125 345.683594 110.753906 369.625 110.753906 369.625 C 115.941406 374.878906 124.917969 374.878906 130.105469 369.691406 L 158.367188 341.363281 C 161.027344 338.769531 165.214844 338.769531 167.808594 341.363281 C 178.648438 352.269531 196.402344 352.269531 207.242188 341.363281 C 218.082031 330.523438 218.082031 312.902344 207.242188 301.996094 C 204.648438 299.402344 204.648438 295.210938 207.242188 292.617188 L 235.503906 264.355469 C 238.03125 261.761719 239.496094 258.304688 239.496094 254.648438 C 239.496094 250.988281 238.03125 247.597656 235.503906 245.003906 Z M 207.175781 216.675781 " fill-opacity="1" fill-rule="nonzero"/>
                         </svg>
-                        <span style="color:#${task.urgency.color_hex};">${task.urgency.name}</span>
+                        <span style="color:#${task.effort.color_hex};">${task.effort.name}</span>
                     </div>
                     <div class="time-tracking task-rating" title="${daysLeft} days left">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 374.999991" fill="${deadlineColor}" class="task-card-icon">
@@ -768,7 +797,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to fetch and populate select options
-    function fetchSelectOptions(url, selectElement, selectedIds = []) {
+    function fetchSelectOptions(url, selectElement, selectedIds) {
         fetch(url)
             .then(response => response.json())
             .then(data => {
@@ -800,9 +829,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('edit-deadline').value = task.deadline.split('T')[0]; // Format date properly
 
                 // Populate urgency, effort, and status dropdowns dynamically
-                fetchSelectOptions('/urgencies', document.getElementById('edit-urgency_id'), [task.urgency_id]);
-                fetchSelectOptions('/efforts', document.getElementById('edit-effort_id'), [task.effort_id]);
-                fetchSelectOptions('/statuses', document.getElementById('edit-status_id'), [task.status.id]);
+                fetchSelectOptions('/urgencies', document.getElementById('edit-urgency_id'), task.urgency_id);
+                fetchSelectOptions('/efforts', document.getElementById('edit-effort_id'), task.effort_id);
+                fetchSelectOptions('/statuses', document.getElementById('edit-status_id'), task.status.id);
 
                 // Open the modal
                 document.getElementById('edit-task-modal').style.display = 'block';
@@ -927,7 +956,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
         return daysLeft;
     }
-    
+
     function getDeadlineColor(deadline) {
         const daysLeft = calculateDaysLeft(deadline);
         if (daysLeft > 2) {
@@ -938,7 +967,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return '#EB5757';
         }
     }
-    
+
     function getDeadlineStatus(deadline) {
         const daysLeft = calculateDaysLeft(deadline);
         if (daysLeft > 2) {
@@ -950,57 +979,80 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Tag-related functionality
     function initializeTagDropdown(inputId, containerId) {
         const tagInput = document.getElementById(inputId);
-        const tagContainer = document.getElementById(containerId);
+        const selectedTagsContainer = document.getElementById(containerId);
+        const tagDropdown = document.getElementById(`${inputId}-dropdown`);
+        
+        if (!tagDropdown) {
+            const dropdown = document.createElement('div');
+            dropdown.id = `${inputId}-dropdown`;
+            dropdown.className = 'dropdown-content';
+            tagInput.parentNode.appendChild(dropdown);
+        }
+    
         tagInput.addEventListener('input', function() {
-            const query = tagInput.value;
+            const query = tagInput.value.trim();
             if (query.length > 0) {
-                fetchTags(query).then(tags => {
-                    displayTagSuggestions(tags, tagContainer, tagInput);
-                });
+                fetch(`/tags?query=${query}`)
+                    .then(response => response.json())
+                    .then(tags => {
+                        const dropdown = document.getElementById(`${inputId}-dropdown`);
+                        dropdown.innerHTML = '';
+                        tags.forEach(tag => {
+                            const tagItem = document.createElement('div');
+                            tagItem.className = 'dropdown-item';
+                            tagItem.textContent = tag.name;
+                            tagItem.dataset.id = tag.id;
+                            tagItem.style.backgroundColor = tag.color_hex;
+                            dropdown.appendChild(tagItem);
+    
+                            tagItem.addEventListener('click', function() {
+                                addTagToContainer(tag.name, tag.id, tag.color_hex, selectedTagsContainer);
+                                tagInput.value = '';
+                                dropdown.innerHTML = '';
+                            });
+                        });
+                        dropdown.style.display = 'block';
+                    })
+                    .catch(error => console.error('Error fetching tags:', error));
             } else {
-                tagContainer.innerHTML = '';
+                const dropdown = document.getElementById(`${inputId}-dropdown`);
+                dropdown.style.display = 'none';
             }
         });
     }
 
-    function fetchTags(query) {
-        return fetch(`/tags?query=${query}`)
-            .then(response => response.json())
-            .catch(error => {
-                console.error('Error fetching tags:', error);
-                return [];
-            });
-    }
-
-    function displayTagSuggestions(tags, container, input) {
-        container.innerHTML = '';
-        tags.forEach(tag => {
-            const tagElement = document.createElement('div');
-            tagElement.className = 'tag-suggestion';
-            tagElement.textContent = tag.name;
-            tagElement.dataset.id = tag.id;
-            tagElement.addEventListener('click', function() {
-                addTagToSelected(tag, input);
-            });
+    function addTagToContainer(tagName, tagId, tagColor, container) {
+        const existingTag = container.querySelector(`.selected-tag[data-id="${tagId}"]`);
+        if (!existingTag) {
+            const tagElement = document.createElement('span');
+            tagElement.className = 'selected-tag';
+            tagElement.textContent = tagName;
+            tagElement.dataset.id = tagId;
+            tagElement.style.backgroundColor = tagColor;
             container.appendChild(tagElement);
-        });
+    
+            tagElement.addEventListener('click', function() {
+                container.removeChild(tagElement);
+            });
+        }
     }
 
-    function addTagToSelected(tag, input) {
-        const selectedTagsContainer = document.getElementById(input.dataset.selectedContainer);
-        const selectedTagElement = document.createElement('span');
-        selectedTagElement.className = 'selected-tag';
-        selectedTagElement.textContent = tag.name;
-        selectedTagElement.dataset.id = tag.id;
-        selectedTagElement.addEventListener('click', function() {
-            selectedTagElement.remove();
-        });
-        selectedTagsContainer.appendChild(selectedTagElement);
-        input.value = '';
-        input.nextSibling.innerHTML = '';
-    }
+    function addTag(tagName, tagId, tagColor) {
+        console.log('Adding tag:', tagName);
+        const existingTag = selectedTagsContainer.querySelector(`.selected-tag[data-id="${tagId}"]`);
+        if (!existingTag) {
+            const tagElement = document.createElement('span');
+            tagElement.className = 'selected-tag';
+            tagElement.textContent = tagName;
+            tagElement.dataset.id = tagId;
+            tagElement.style.backgroundColor = tagColor;
+            selectedTagsContainer.appendChild(tagElement);
 
+            tagElement.addEventListener('click', function() {
+                selectedTagsContainer.removeChild(tagElement);
+            });
+        }
+    }
 });
