@@ -35,7 +35,7 @@ function showContextMenu(event) {
     const menuWidth = contextMenu.offsetWidth;
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
-    
+
     let top = event.clientY;
     let left = event.clientX;
 
@@ -59,7 +59,7 @@ function showContextMenu(event) {
         starIcon.src = unstarredIconUrl;
         starText.textContent = 'Star';
     }
-    
+
     contextMenu.classList.add('active');
 }
 
@@ -126,8 +126,7 @@ document.getElementById('file-input').addEventListener('change', function(event)
 // Handle tag search and selection
 document.getElementById('note-input').addEventListener('input', function(event) {
     const input = event.target.value;
-    const tagDropdown = document.getElementById('tag-dropdown');
-    
+    const tagDropdown = document.getElementById('note-tag-dropdown');
 
     if (input.includes('#')) {
         const tagSearch = input.split('#').pop();
@@ -145,7 +144,7 @@ document.getElementById('note-input').addEventListener('input', function(event) 
                         const selectedTag = document.createElement('span');
                         selectedTag.textContent = tag.name;
                         selectedTag.className = 'selected-tag';
-                        document.getElementById('selected-tags').appendChild(selectedTag); // Append to selected tags container
+                        document.getElementById('note-selected-tags').appendChild(selectedTag); // Append to selected tags container
                         event.target.value = event.target.value.replace(`#${tagSearch}`, '').trim() + ' ';
                         tagDropdown.innerHTML = '';
                     });
@@ -157,6 +156,7 @@ document.getElementById('note-input').addEventListener('input', function(event) 
             }
         })
         .catch(error => {
+            console.error('Error fetching tags:', error);
         });
     } else {
         tagDropdown.style.display = 'none';
@@ -170,7 +170,7 @@ document.getElementById('notes-form').addEventListener('submit', function(event)
     const submitButton = document.querySelector('#notes-form button[type="submit"]');
     const feedbackMessage = document.getElementById('feedback-message');
     const fileInput = document.getElementById('file-input');
-    const selectedTags = Array.from(document.querySelectorAll('.selected-tag')).map(tag => tag.textContent.trim());
+    const selectedTags = Array.from(document.querySelectorAll('#note-selected-tags .selected-tag')).map(tag => tag.textContent.trim());
 
     if (!noteText && !fileInput.files.length) {
         feedbackMessage.textContent = 'Note content or image must be provided.';
@@ -253,7 +253,7 @@ document.getElementById('notes-form').addEventListener('submit', function(event)
                 document.getElementById('notes-list').appendChild(noteElement);
                 document.getElementById('note-input').value = '';
                 fileInput.value = ''; // Clear the file input
-                document.getElementById('selected-tags').innerHTML = ''; // Clear selected tags
+                document.getElementById('note-selected-tags').innerHTML = ''; // Clear selected tags
             } else {
                 feedbackMessage.textContent = 'Error saving note: ' + data.message;
             }
@@ -271,30 +271,38 @@ document.getElementById('notes-form').addEventListener('submit', function(event)
 // Close the dropdown when clicking outside
 document.addEventListener('click', function(event) {
     if (!event.target.closest('.input-container')) {
-        document.getElementById('tag-dropdown').style.display = 'none';
+        const noteTagDropdown = document.getElementById('note-tag-dropdown');
+        const taskTagDropdown = document.getElementById('task-tag-dropdown');
+        if (noteTagDropdown) noteTagDropdown.style.display = 'none';
+        if (taskTagDropdown) taskTagDropdown.style.display = 'none';
     }
 });
 
 // Get the modal
 var modal = document.getElementById('image-fullscreen-modal');
-
-// Get the image and insert it inside the modal - use its "alt" text as a caption
 var modalImg = document.getElementById("full-image");
 var captionText = document.getElementById("caption");
-
-// Add event listener to dynamically added images
-document.addEventListener('click', function(event) {
-    if (event.target.classList.contains('note_image')) {
-        modal.style.display = "block";
-        modalImg.src = event.target.src;
-        captionText.innerHTML = event.target.alt;
-    }
-});
-
 var span = document.getElementsByClassName("image-close")[0];
 
-span.onclick = function() {
-    modal.style.display = "none";
+// Ensure modal, modalImg, and captionText are not null
+if (modal && modalImg && captionText) {
+    // Add event listener to dynamically added images
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('note_image')) {
+            modal.style.display = "block";
+            modalImg.src = event.target.src;
+            captionText.innerHTML = event.target.alt;
+        }
+    });
+}
+
+// Ensure span is not null
+if (span) {
+    span.onclick = function() {
+        if (modal) {
+            modal.style.display = "none";
+        }
+    }
 }
 
 // Handle star/unstar action
@@ -436,31 +444,118 @@ document.addEventListener('DOMContentLoaded', function() {
     const editTaskModal = document.getElementById('edit-task-modal');
     const closeEditModalButton = document.querySelector('.modal-close-edit');
     const editTaskForm = document.getElementById('edit-task-form');
+    const taskTagInput = document.getElementById('task-tags');
+    const taskSelectedTagsContainer = document.getElementById('task-selected-tags');
+    const taskTagDropdown = document.getElementById('task-tag-dropdown');
+    let allTags = [];
+
+    function initializeTagDropdown(tagInputId, selectedTagsContainerId) {
+        const tagInput = document.getElementById(tagInputId);
+        const selectedTagsContainer = document.getElementById(selectedTagsContainerId);
+        const tagDropdown = document.getElementById('task-tag-dropdown');
+
+        tagInput.addEventListener('input', function() {
+            const query = tagInput.value.trim();
+            if (query.length > 0) {
+                fetch(`/tags?query=${query}`)
+                    .then(response => response.json())
+                    .then(tags => {
+                        tagDropdown.innerHTML = '';
+                        tags.forEach(tag => {
+                            const tagItem = document.createElement('div');
+                            tagItem.className = 'tag-item';
+                            tagItem.textContent = tag.name;
+                            tagItem.dataset.id = tag.id;
+                            tagItem.style.backgroundColor = tag.color_hex;
+                            tagDropdown.appendChild(tagItem);
+
+                            tagItem.addEventListener('click', function() {
+                                addTag(tag.name, tag.id, tag.color_hex);
+                                tagInput.value = '';
+                                tagDropdown.innerHTML = '';
+                            });
+                        });
+                        tagDropdown.style.display = 'block';
+                    })
+                    .catch(error => console.error('Error fetching tags:', error));
+            } else {
+                tagDropdown.style.display = 'none';
+            }
+        });
+
+        function addTag(tagName, tagId, tagColor) {
+            const existingTag = selectedTagsContainer.querySelector(`.selected-tag[data-id="${tagId}"]`);
+            if (!existingTag) {
+                const tagElement = document.createElement('span');
+                tagElement.className = 'selected-tag';
+                tagElement.textContent = tagName;
+                tagElement.dataset.id = tagId;
+                tagElement.style.backgroundColor = tagColor;
+                selectedTagsContainer.appendChild(tagElement);
+
+                tagElement.addEventListener('click', function() {
+                    selectedTagsContainer.removeChild(tagElement);
+                });
+            }
+        }
+    }
+
+    // Fetch all tags initially
+    fetch('/tags')
+        .then(response => response.json())
+        .then(data => {
+            allTags = data;
+        })
+        .catch(error => console.error('Error fetching all tags:', error));
 
     // Open the Add Task Modal
     if (addTaskButton) {
         addTaskButton.addEventListener('click', function() {
-            taskModal.style.display = 'block';
+            console.log('Add Task button clicked');
+            if (taskModal) {
+                console.log('taskModal exists');
+                taskModal.style.display = 'block';
+                body.classList.add('modal-background-blur'); // Add blur class to body
+            } else {
+                console.error('taskModal is null');
+            }
+            initializeTagDropdown('task-tags', 'selected-tags', 'task-tag-dropdown');
+            fetchSelectOptions('/urgencies', document.getElementById('urgency_id'));
+            fetchSelectOptions('/efforts', document.getElementById('effort_id'));
         });
+    } else {
+        console.error('addTaskButton is null');
     }
 
     // Close the Add Task Modal
     if (closeModalButton) {
         closeModalButton.addEventListener('click', function() {
-            taskModal.style.display = 'none';
+            console.log('Close Modal button clicked');
+            if (taskModal) {
+                console.log('taskModal exists');
+                taskModal.style.display = 'none';
+                body.classList.remove('modal-background-blur'); // Remove blur class from body
+            } else {
+                console.error('taskModal is null');
+            }
             resetForm();
         });
+    } else {
+        console.error('closeModalButton is null');
     }
 
     // Handle Add Task Form Submission
     if (taskForm) {
         taskForm.addEventListener('submit', function(event) {
             event.preventDefault();
+            console.log('Add Task form submitted');
             const title = document.getElementById('title').value.trim();
             const description = document.getElementById('description').value.trim();
             const deadline = document.getElementById('deadline').value;
             const urgencyId = document.getElementById('urgency_id').value;
             const effortId = document.getElementById('effort_id').value;
+            const selectedTags = Array.from(document.querySelectorAll('#task-selected-tags .selected-tag')).map(tag => tag.dataset.id);
+            const newTags = taskTagInput.value.trim().split(',');
 
             if (!title || !description || !deadline || !urgencyId || !effortId) {
                 alert('Please fill out all required fields.');
@@ -473,7 +568,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 deadline: deadline,
                 urgency_id: urgencyId,
                 effort_id: effortId,
-                status_id: 1 // Assuming 'backlog' status has id 1
+                status_id: 1, // Assuming 'backlog' status has id 1
+                group_id: 1, // Ensure group_id is always set to 1
+                tags: selectedTags,
+                new_tags: newTags
             };
 
             fetch('/add_task', {
@@ -486,7 +584,13 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    taskModal.style.display = 'none';
+                    console.log('Task added successfully');
+                    if (taskModal) {
+                        console.log('taskModal exists');
+                        taskModal.style.display = 'none';
+                    } else {
+                        console.error('taskModal is null');
+                    }
                     fetchTasks(); // Refresh tasks
                     resetForm(); // Reset the form after task creation
                 } else {
@@ -495,19 +599,31 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => console.error('Error:', error));
         });
+    } else {
+        console.error('taskForm is null');
     }
 
     // Close the Edit Task Modal
     if (closeEditModalButton) {
         closeEditModalButton.addEventListener('click', function() {
-            editTaskModal.style.display = 'none';
+            console.log('Close Edit Modal button clicked');
+            if (editTaskModal) {
+                console.log('editTaskModal exists');
+                editTaskModal.style.display = 'none';
+                body.classList.remove('modal-background-blur'); // Remove blur class from body
+            } else {
+                console.error('editTaskModal is null');
+            }
         });
+    } else {
+        console.error('closeEditModalButton is null');
     }
 
     // Handle Edit Task Form Submission
     if (editTaskForm) {
         editTaskForm.addEventListener('submit', function(event) {
             event.preventDefault();
+            console.log('Edit Task form submitted');
             const taskId = document.getElementById('edit-task-id').value;
             const title = document.getElementById('edit-title').value.trim();
             const description = document.getElementById('edit-description').value.trim();
@@ -515,6 +631,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const urgencyId = document.getElementById('edit-urgency_id').value;
             const effortId = document.getElementById('edit-effort_id').value;
             const statusId = document.getElementById('edit-status_id').value;
+            const selectedTags = Array.from(document.querySelectorAll('#edit-selected-tags .selected-tag')).map(tag => tag.dataset.id);
+            const newTags = document.getElementById('edit-task-tags').value.trim().split(',');
 
             if (!title || !description || !deadline || !urgencyId || !effortId || !statusId) {
                 alert('Please fill out all required fields.');
@@ -527,7 +645,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 deadline: deadline,
                 urgency_id: urgencyId,
                 effort_id: effortId,
-                status_id: statusId
+                status_id: statusId,
+                tags: selectedTags,
+                new_tags: newTags
             };
 
             fetch(`/edit_task/${taskId}`, {
@@ -540,7 +660,13 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    editTaskModal.style.display = 'none';
+                    console.log('Task edited successfully');
+                    if (editTaskModal) {
+                        console.log('editTaskModal exists');
+                        editTaskModal.style.display = 'none';
+                    } else {
+                        console.error('editTaskModal is null');
+                    }
                     fetchTasks(); // Refresh tasks
                 } else {
                     console.error('Error editing task:', data.error);
@@ -548,10 +674,55 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => console.error('Error:', error));
         });
+    } else {
+        console.error('editTaskForm is null');
     }
 
     function resetForm() {
-        document.getElementById('create-task-form').reset();
+        console.log('Resetting form');
+        if (taskForm) {
+            taskForm.reset();
+        }
+        if (taskSelectedTagsContainer) {
+            taskSelectedTagsContainer.innerHTML = '';
+        }
+    }
+
+    function populateDropdown(url, elementId) {
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const dropdown = document.getElementById(elementId);
+                dropdown.innerHTML = ''; // Clear existing options
+                data.forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option.id;
+                    opt.textContent = option.name;
+                    dropdown.appendChild(opt);
+                });
+            })
+            .catch(error => console.error(`Error fetching ${elementId} options:`, error));
+    }
+
+    // Function for task deadline
+    function getDaySuffix(day) {
+        if (day > 3 && day < 21) return 'th';
+        switch (day % 10) {
+            case 1: return 'st';
+            case 2: return 'nd';
+            case 3: return 'rd';
+            default: return 'th';
+        }
+    }
+
+    // Function to format the date to "Month day"
+    function formatDateToMonthDay(dateString) {
+        const date = new Date(dateString);
+        const options = { month: 'long' };
+        const month = date.toLocaleDateString('en-US', options);
+        const day = date.getDate();
+        const daySuffix = getDaySuffix(day);
+        return `${month} ${day}${daySuffix}`;
     }
 
     // Fetch and display tasks
@@ -559,6 +730,10 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('/tasks')
             .then(response => response.json())
             .then(data => {
+                if (data.error) {
+                    console.error('Error fetching tasks:', data.error);
+                    return;
+                }
                 const taskGroups = document.querySelectorAll('.tasks');
                 taskGroups.forEach(group => group.innerHTML = ''); // Clear current tasks
                 data.forEach(task => {
@@ -573,35 +748,55 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => console.error('Error fetching tasks:', error));
     }
 
-    // Create a task element
     function createTaskElement(task) {
         const taskElement = document.createElement('div');
         taskElement.className = 'task';
         taskElement.dataset.id = task.id;
         taskElement.dataset.groupId = task.group_id;
 
+        const daysLeft = calculateDaysLeft(task.deadline);
+        const deadlineColor = getDeadlineColor(task.deadline);
+        const deadlineStatus = getDeadlineStatus(task.deadline);
+
+        const tagsHtml = task.tags.map(tag => `
+            <span class="tag-text" style="background-color: ${tag.color_hex};">${tag.name}</span>
+        `).join('');
+
         taskElement.innerHTML = `
             <div class="task-header">
-                <div class="title">${task.title}</div>
-                <div class="status">
-                    <div id="app-cover">
-                        <div id="select-box-${task.id}">
-                            <div id="select-button-${task.id}" class="brd" data-selected-color="rgba(${hexToRgb(task.status.color_hex)}, 0.3)" data-selected-text-color="#${task.status.color_hex}">
-                                <div id="selected-value-${task.id}">
-                                    <span class="selected-status">${task.status.name}</span>
+                <div class="task-top-header">
+                    <div class="title">${task.title}</div>
+                    <div class="status">
+                        <div id="app-cover">
+                            <div id="select-box-${task.id}">
+                                <div id="select-button-${task.id}" class="brd" data-selected-color="rgba(${hexToRgb(task.status.color_hex)}, 0.3)" data-selected-text-color="#${task.status.color_hex}">
+                                    <div id="selected-value-${task.id}">
+                                        <span class="selected-status">${task.status.name}</span>
+                                    </div>
+                                </div>
+                                <div id="options-${task.id}" class="options">
+                                    ${task.statuses.map(status => `
+                                        <div class="option" data-status-id="${status.id}" style="background-color: rgba(${hexToRgb(status.color_hex)}, 0.3); color: #${status.color_hex};">
+                                            <input class="s-c" type="radio" name="status-${task.id}" value="${status.id}">
+                                            <span class="label">${status.name}</span>
+                                            <span class="opt-val">${status.name}</span>
+                                        </div>
+                                    `).join('')}
+                                    <div id="option-bg"></div>
                                 </div>
                             </div>
-                            <div id="options-${task.id}" class="options">
-                                ${task.statuses.map(status => `
-                                    <div class="option" data-status-id="${status.id}" style="background-color: rgba(${hexToRgb(status.color_hex)}, 0.3); color: #${status.color_hex};">
-                                        <input class="s-c" type="radio" name="status-${task.id}" value="${status.id}">
-                                        <span class="label">${status.name}</span>
-                                        <span class="opt-val">${status.name}</span>
-                                    </div>
-                                `).join('')}
-                                <div id="option-bg"></div>
-                            </div>
                         </div>
+                    </div>
+                </div>
+                <div class="task-bottom-header">
+                    <div class="tags-container">
+                        <div class="tag-background">${tagsHtml}</div>
+                    </div>
+                    <div class="deadline">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 374.999991" fill="#${task.urgency.color_hex}" class="task-card-icon">
+                            <path fill="#FFFFFF" d="M 0 75.894531 C 0 51.238281 19.988281 31.25 44.644531 31.25 L 330.355469 31.25 C 355.011719 31.25 375 51.238281 375 75.894531 L 375 111.605469 C 375 116.539062 371 120.535156 366.070312 120.535156 L 8.929688 120.535156 C 3.996094 120.535156 0 116.539062 0 111.605469 Z M 44.644531 49.105469 C 29.847656 49.105469 17.855469 61.097656 17.855469 75.894531 L 17.855469 102.679688 L 357.144531 102.679688 L 357.144531 75.894531 C 357.144531 61.097656 345.148438 49.105469 330.355469 49.105469 Z M 44.644531 49.105469 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 0 111.605469 C 0 106.675781 3.996094 102.679688 8.929688 102.679688 L 366.070312 102.679688 C 371 102.679688 375 106.675781 375 111.605469 L 375 147.320312 L 357.144531 147.320312 L 357.144531 120.535156 L 17.855469 120.535156 L 17.855469 325.894531 C 17.855469 340.6875 29.847656 352.679688 44.644531 352.679688 L 151.785156 352.679688 L 151.785156 370.535156 L 44.644531 370.535156 C 19.988281 370.535156 0 350.546875 0 325.894531 Z M 0 111.605469 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 178.570312 4.464844 L 196.429688 4.464844 L 196.429688 58.035156 L 178.570312 58.035156 Z M 178.570312 4.464844 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 267.855469 4.464844 L 285.714844 4.464844 L 285.714844 58.035156 L 267.855469 58.035156 Z M 267.855469 4.464844 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 89.285156 4.464844 L 107.144531 4.464844 L 107.144531 58.035156 L 89.285156 58.035156 Z M 89.285156 4.464844 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 232.144531 218.75 C 232.144531 213.820312 236.140625 209.820312 241.070312 209.820312 L 330.355469 209.820312 C 335.289062 209.820312 339.285156 213.820312 339.285156 218.75 L 339.285156 238.65625 C 339.285156 244.335938 338.203125 249.964844 336.09375 255.238281 L 320.789062 293.496094 C 319.433594 296.882812 316.152344 299.105469 312.5 299.105469 L 258.929688 299.105469 C 255.277344 299.105469 251.996094 296.882812 250.640625 293.496094 L 235.335938 255.238281 C 233.226562 249.964844 232.144531 244.335938 232.144531 238.65625 Z M 250 227.679688 L 250 238.65625 C 250 242.066406 250.648438 245.441406 251.917969 248.605469 L 264.972656 281.25 L 306.457031 281.25 L 319.511719 248.605469 C 320.777344 245.441406 321.429688 242.066406 321.429688 238.65625 L 321.429688 227.679688 Z M 250 227.679688 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 232.144531 361.605469 C 232.144531 366.539062 236.140625 370.535156 241.070312 370.535156 L 330.355469 370.535156 C 335.289062 370.535156 339.285156 366.539062 339.285156 361.605469 L 339.285156 341.699219 C 339.285156 336.019531 338.203125 330.394531 336.09375 325.121094 L 320.789062 286.863281 C 319.433594 283.472656 316.152344 281.25 312.5 281.25 L 258.929688 281.25 C 255.277344 281.25 251.996094 283.472656 250.640625 286.863281 L 235.335938 325.121094 C 233.226562 330.394531 232.144531 336.019531 232.144531 341.699219 Z M 250 352.679688 L 250 341.699219 C 250 338.292969 250.648438 334.917969 251.917969 331.75 L 264.972656 299.105469 L 306.457031 299.105469 L 319.511719 331.75 C 320.777344 334.917969 321.429688 338.292969 321.429688 341.699219 L 321.429688 352.679688 Z M 250 352.679688 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 205.355469 209.820312 L 366.070312 209.820312 L 366.070312 227.679688 L 205.355469 227.679688 Z M 205.355469 209.820312 " fill-opacity="1" fill-rule="evenodd"/><path fill="#FFFFFF" d="M 205.355469 352.679688 L 366.070312 352.679688 L 366.070312 370.535156 L 205.355469 370.535156 Z M 205.355469 352.679688 " fill-opacity="1" fill-rule="evenodd"/>
+                        </svg>
+                        <span class="deadline-date">${formatDateToMonthDay(task.deadline)}</span>
                     </div>
                 </div>
             </div>
@@ -621,11 +816,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         </svg>
                         <span style="color:#${task.effort.color_hex};">${task.effort.name}</span>
                     </div>
-                    <div class="progress-tracking task-rating">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 374.999991" fill="#219653" class="task-card-icon">
+                    <div class="time-tracking task-rating" title="${daysLeft} days left">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 374.999991" fill="${deadlineColor}" class="task-card-icon">
                             <path d="M 328.125 46.875 C 328.125 33.75 317.8125 23.4375 304.6875 23.4375 L 257.8125 23.4375 L 257.8125 11.71875 C 257.8125 5.25 252.5625 0 246.09375 0 L 222.65625 0 C 216.1875 0 210.9375 5.25 210.9375 11.71875 L 210.9375 23.4375 L 117.1875 23.4375 L 117.1875 11.71875 C 117.1875 5.25 111.9375 0 105.46875 0 L 82.03125 0 C 75.5625 0 70.3125 5.25 70.3125 11.71875 L 70.3125 23.4375 L 23.4375 23.4375 C 10.3125 23.4375 0 33.75 0 46.875 L 0 117.1875 L 328.125 117.1875 Z M 328.125 46.875 " fill-opacity="1" fill-rule="nonzero"/><path d="M 269.53125 140.625 L 0 140.625 L 0 304.6875 C 0 317.8125 10.3125 328.125 23.4375 328.125 L 154.804688 328.125 C 145.804688 310.523438 140.625 290.648438 140.625 269.53125 C 140.625 198.328125 198.328125 140.625 269.53125 140.625 Z M 269.53125 140.625 " fill-opacity="1" fill-rule="nonzero"/><path d="M 269.53125 164.0625 C 211.289062 164.0625 164.0625 211.289062 164.0625 269.53125 C 164.0625 327.773438 211.289062 375 269.53125 375 C 327.773438 375 375 327.773438 375 269.53125 C 375 211.289062 327.773438 164.0625 269.53125 164.0625 Z M 316.40625 281.25 L 269.53125 281.25 C 263.0625 281.25 257.8125 276 257.8125 269.53125 L 257.8125 222.65625 C 257.8125 216.1875 263.0625 210.9375 269.53125 210.9375 C 276 210.9375 281.25 216.1875 281.25 222.65625 L 281.25 257.8125 L 316.40625 257.8125 C 322.875 257.8125 328.125 263.0625 328.125 269.53125 C 328.125 276 322.875 281.25 316.40625 281.25 Z M 316.40625 281.25 " fill-opacity="1" fill-rule="nonzero"/>
                         </svg>
-                        <span style="color:#219653;">On Track</span>
+                        <span style="color:${deadlineColor};">${deadlineStatus}</span>
                     </div>
                 </div>
             </div>
@@ -697,17 +892,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 return response.json();
             })
-            .catch(error => {
-                console.error('There was a problem with the fetch operation:', error);
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                return data;
             });
-    }
+    }    
 
     // Function to fetch and populate select options
-    function fetchSelectOptions(url, selectElement, selectedId) {
+    function fetchSelectOptions(url, selectElement, selectedIds = []) {
         fetch(url)
             .then(response => response.json())
             .then(data => {
-                populateSelectOptions(selectElement, data, selectedId);
+                selectElement.innerHTML = ''; // Clear existing options
+                data.forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option.id;
+                    opt.textContent = option.name;
+                    if (selectedIds.includes(option.id)) {
+                        opt.selected = true;
+                    }
+                    selectElement.appendChild(opt);
+                });
             })
             .catch(error => console.error('Error fetching select options:', error));
     }
@@ -715,21 +922,30 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to open the edit task modal
     function openEditTaskModal(taskId) {
         console.log('Opening edit modal for task ID:', taskId); // Debug log
-
+    
         getTaskById(taskId).then(task => {
             if (task) {
                 console.log('Task data:', task); // Debug log
-
+    
                 document.getElementById('edit-task-id').value = task.id;
                 document.getElementById('edit-title').value = task.title;
                 document.getElementById('edit-description').value = task.description;
                 document.getElementById('edit-deadline').value = task.deadline.split('T')[0]; // Format date properly
-
+    
                 // Populate urgency, effort, and status dropdowns dynamically
-                fetchSelectOptions('/urgencies', document.getElementById('edit-urgency_id'), task.urgency_id);
-                fetchSelectOptions('/efforts', document.getElementById('edit-effort_id'), task.effort_id);
-                fetchSelectOptions('/statuses', document.getElementById('edit-status_id'), task.status.id);
-
+                fetchSelectOptions('/urgencies', document.getElementById('edit-urgency_id'), [task.urgency_id]);
+                fetchSelectOptions('/efforts', document.getElementById('edit-effort_id'), [task.effort_id]);
+                fetchSelectOptions('/statuses', document.getElementById('edit-status_id'), [task.status.id]);
+    
+                // Clear and populate selected tags
+                const selectedTagsContainer = document.getElementById('edit-selected-tags');
+                selectedTagsContainer.innerHTML = '';
+                if (task.tags) {
+                    task.tags.forEach(tag => {
+                        addEditTag(tag.name, tag.id, tag.color_hex, selectedTagsContainer);
+                    });
+                }
+    
                 // Open the modal
                 document.getElementById('edit-task-modal').style.display = 'block';
             } else {
@@ -739,7 +955,56 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error fetching task details:', error);
             alert('Failed to load task details.');
         });
+    }    
+
+    function addEditTag(tagName, tagId, tagColor, container) {
+    const existingTag = container.querySelector(`.selected-tag[data-id="${tagId}"]`);
+    if (!existingTag) {
+        const tagElement = document.createElement('span');
+        tagElement.className = 'selected-tag';
+        tagElement.textContent = tagName;
+        tagElement.dataset.id = tagId;
+        tagElement.style.backgroundColor = tagColor;
+        container.appendChild(tagElement);
+
+        tagElement.addEventListener('click', function() {
+            container.removeChild(tagElement);
+            });
+        }
     }
+
+    // Tag input and dropdown functionality for edit modal
+    document.getElementById('edit-task-tags').addEventListener('input', function() {
+        const query = this.value.trim();
+        const tagDropdown = document.getElementById('edit-task-tag-dropdown');
+        const selectedTagsContainer = document.getElementById('edit-selected-tags');
+
+        if (query.length > 0) {
+            fetch(`/tags?query=${query}`)
+                .then(response => response.json())
+                .then(tags => {
+                    tagDropdown.innerHTML = '';
+                    tags.forEach(tag => {
+                        const tagItem = document.createElement('div');
+                        tagItem.className = 'tag-item';
+                        tagItem.textContent = tag.name;
+                        tagItem.dataset.id = tag.id;
+                        tagItem.style.backgroundColor = tag.color_hex;
+                        tagDropdown.appendChild(tagItem);
+
+                        tagItem.addEventListener('click', function() {
+                            addEditTag(tag.name, tag.id, tag.color_hex, selectedTagsContainer);
+                            document.getElementById('edit-task-tags').value = '';
+                            tagDropdown.innerHTML = '';
+                        });
+                    });
+                    tagDropdown.style.display = 'block';
+                })
+                .catch(error => console.error('Error fetching tags:', error));
+        } else {
+            tagDropdown.style.display = 'none';
+        }
+    });
 
     // Function to update task status and group
     function updateTaskStatus(taskId, newStatusId) {
@@ -800,7 +1065,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => console.error('Error:', error));
     }
-    
+
     // Event listener for group title click to toggle visibility
     document.addEventListener('click', function (event) {
         if (event.target.classList.contains('group-title')) {
@@ -844,5 +1109,82 @@ document.addEventListener('DOMContentLoaded', function() {
         let g = (bigint >> 8) & 255;
         let b = bigint & 255;
         return `${r},${g},${b}`;
+    }
+
+    function calculateDaysLeft(deadline) {
+        const today = new Date();
+        const deadlineDate = new Date(deadline);
+        const timeDiff = deadlineDate - today;
+        const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        return daysLeft;
+    }
+
+    function getDeadlineColor(deadline) {
+        const daysLeft = calculateDaysLeft(deadline);
+        if (daysLeft > 2) {
+            return '#219653';
+        } else if (daysLeft >= 0 && daysLeft <= 2) {
+            return '#F2C94C';
+        } else {
+            return '#EB5757';
+        }
+    }
+
+    function getDeadlineStatus(deadline) {
+        const daysLeft = calculateDaysLeft(deadline);
+        if (daysLeft > 2) {
+            return 'On Track';
+        } else if (daysLeft >= 0 && daysLeft <= 2) {
+            return 'Attention';
+        } else {
+            return 'Overdue';
+        }
+    }
+
+    // Tag input and dropdown functionality
+    taskTagInput.addEventListener('input', function() {
+        const query = taskTagInput.value.trim();
+        if (query.length > 0) {
+            fetch(`/tags?query=${query}`)
+                .then(response => response.json())
+                .then(tags => {
+                    taskTagDropdown.innerHTML = '';
+                    tags.forEach(tag => {
+                        const tagItem = document.createElement('div');
+                        tagItem.className = 'tag-item';
+                        tagItem.textContent = tag.name;
+                        tagItem.dataset.id = tag.id;
+                        tagItem.style.backgroundColor = tag.color_hex;
+                        taskTagDropdown.appendChild(tagItem);
+
+                        tagItem.addEventListener('click', function() {
+                            addTag(tag.name, tag.id, tag.color_hex);
+                            taskTagInput.value = '';
+                            taskTagDropdown.innerHTML = '';
+                        });
+                    });
+                    taskTagDropdown.style.display = 'block';
+                })
+                .catch(error => console.error('Error fetching tags:', error));
+        } else {
+            taskTagDropdown.style.display = 'none';
+        }
+    });
+
+    function addTag(tagName, tagId, tagColor) {
+        console.log('Adding tag:', tagName);
+        const existingTag = taskSelectedTagsContainer.querySelector(`.selected-tag[data-id="${tagId}"]`);
+        if (!existingTag) {
+            const tagElement = document.createElement('span');
+            tagElement.className = 'selected-tag';
+            tagElement.textContent = tagName;
+            tagElement.dataset.id = tagId;
+            tagElement.style.backgroundColor = tagColor;
+            taskSelectedTagsContainer.appendChild(tagElement);
+
+            tagElement.addEventListener('click', function() {
+                taskSelectedTagsContainer.removeChild(tagElement);
+            });
+        }
     }
 });

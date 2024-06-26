@@ -365,7 +365,7 @@ button {
     box-shadow: 0px 2px 4px rgba(0,0,0,0.1);
 }
 
-.note_tag {
+.tag-text {
     color: #303030;
     font-size: 12px;
 }
@@ -460,7 +460,7 @@ button {
     color: #FFF;
     padding: 10px;
     border-radius: 5px;
-    width: 230px;
+    width: 250px;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -469,6 +469,7 @@ button {
 
 .task .title {
     font-weight: 500;
+    width: 60%;
 }
 
 .task .description {
@@ -477,13 +478,21 @@ button {
     color: #FFFFFF;
     opacity: 70%;
     margin: 10px 10px 0 0;
-    width: 70%;
+    width: 85%;
 }
 
 .task .deadline {
-    font-size: 12px;
+    font-size: 14px;
     color: #999;
-    margin-top: 10px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    margin-left: 5px;
+    align-items: center;
+}
+
+.deadline-date {
+    margin-left: 5px;
 }
 
 .task .progress-bar {
@@ -538,11 +547,34 @@ button {
 
 .task-header {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: space-between;
     align-items: center;
     width: 100%;
     margin-bottom: 10px;
+}
+
+.task-top-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.task-buttom-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.deadline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
 }
 
 .status {
@@ -550,8 +582,8 @@ button {
 }
 
 .task-card-icon {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     margin-bottom: 2px;
 }
 
@@ -564,7 +596,6 @@ button {
     margin: 0;
 }
 
-/* Override the default focus and hover styles */
 .status-dropdown option:hover,
 .status-dropdown option:focus {
     /* background-color: inherit !important;
@@ -574,7 +605,6 @@ button {
     background-color: none;
 }
 
-/* Custom Dropdown Styles */
 #app-cover {
     position: relative;
     display: inline-block;
@@ -587,6 +617,7 @@ button {
 
 .selected-status {
     padding: 5px 10px;
+    margin-right: 5px;
     cursor: pointer;
     border-radius: 5px;
     width: 80%;
@@ -598,10 +629,10 @@ button {
 .options {
     position: absolute;
     width: 100%;
-    background-color: #2c3e50;
+    background-color: #899aac;
     border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-    margin-top: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    margin-top: 3px;
     max-height: 100px;
     overflow-y: auto;
     display: none;
@@ -643,7 +674,7 @@ button {
     height: 150%;
     top: 0;
     left: 0;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.8);
     border-radius: 5px;
     z-index: -1;
 }
@@ -672,14 +703,19 @@ button {
 
 .modal-content {
     background-color: #181820;
-    margin: 15% auto;
+    margin: 10% auto;
     padding: 20px;
-    border: 1px solid #888;
+    /* border: 1px solid #888; */
     width: 80%; 
     max-width: 500px;
     border-radius: 10px;
     box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
     animation: modalopen 0.4s;
+}
+
+.modal-background-blur {
+    filter: blur(5px); /* Adjust the blur intensity as needed */
+    transition: filter 0.3s ease; /* Optional: Smooth transition */
 }
 
 @keyframes modalopen {
@@ -818,4 +854,34 @@ button {
 
 .primary-button :hover {
     background-color: #45a049;
+}
+
+.task-bottom-header {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 5px;
+}
+
+/* Add this CSS to style the dropdown and ensure it appears next to the input */
+#task-tag-dropdown {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+    z-index: 1000;
+    display: none;
+}
+
+.tag-item {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.tag-item:hover {
+    background-color: #f1f1f1;
 }
