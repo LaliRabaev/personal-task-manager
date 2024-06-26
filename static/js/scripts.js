@@ -515,10 +515,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (taskModal) {
                 console.log('taskModal exists');
                 taskModal.style.display = 'block';
+                body.classList.add('modal-background-blur'); // Add blur class to body
             } else {
                 console.error('taskModal is null');
             }
-            initializeTagDropdown('task-tags', 'task-selected-tags');
+            initializeTagDropdown('task-tags', 'selected-tags', 'task-tag-dropdown');
             fetchSelectOptions('/urgencies', document.getElementById('urgency_id'));
             fetchSelectOptions('/efforts', document.getElementById('effort_id'));
         });
@@ -533,6 +534,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (taskModal) {
                 console.log('taskModal exists');
                 taskModal.style.display = 'none';
+                body.classList.remove('modal-background-blur'); // Remove blur class from body
             } else {
                 console.error('taskModal is null');
             }
@@ -608,6 +610,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (editTaskModal) {
                 console.log('editTaskModal exists');
                 editTaskModal.style.display = 'none';
+                body.classList.remove('modal-background-blur'); // Remove blur class from body
             } else {
                 console.error('editTaskModal is null');
             }
@@ -889,10 +892,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 return response.json();
             })
-            .catch(error => {
-                console.error('There was a problem with the fetch operation:', error);
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                return data;
             });
-    }
+    }    
 
     // Function to fetch and populate select options
     function fetchSelectOptions(url, selectElement, selectedIds = []) {
@@ -916,21 +922,30 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to open the edit task modal
     function openEditTaskModal(taskId) {
         console.log('Opening edit modal for task ID:', taskId); // Debug log
-
+    
         getTaskById(taskId).then(task => {
             if (task) {
                 console.log('Task data:', task); // Debug log
-
+    
                 document.getElementById('edit-task-id').value = task.id;
                 document.getElementById('edit-title').value = task.title;
                 document.getElementById('edit-description').value = task.description;
                 document.getElementById('edit-deadline').value = task.deadline.split('T')[0]; // Format date properly
-
+    
                 // Populate urgency, effort, and status dropdowns dynamically
                 fetchSelectOptions('/urgencies', document.getElementById('edit-urgency_id'), [task.urgency_id]);
                 fetchSelectOptions('/efforts', document.getElementById('edit-effort_id'), [task.effort_id]);
                 fetchSelectOptions('/statuses', document.getElementById('edit-status_id'), [task.status.id]);
-
+    
+                // Clear and populate selected tags
+                const selectedTagsContainer = document.getElementById('edit-selected-tags');
+                selectedTagsContainer.innerHTML = '';
+                if (task.tags) {
+                    task.tags.forEach(tag => {
+                        addEditTag(tag.name, tag.id, tag.color_hex, selectedTagsContainer);
+                    });
+                }
+    
                 // Open the modal
                 document.getElementById('edit-task-modal').style.display = 'block';
             } else {
@@ -940,7 +955,56 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error fetching task details:', error);
             alert('Failed to load task details.');
         });
+    }    
+
+    function addEditTag(tagName, tagId, tagColor, container) {
+    const existingTag = container.querySelector(`.selected-tag[data-id="${tagId}"]`);
+    if (!existingTag) {
+        const tagElement = document.createElement('span');
+        tagElement.className = 'selected-tag';
+        tagElement.textContent = tagName;
+        tagElement.dataset.id = tagId;
+        tagElement.style.backgroundColor = tagColor;
+        container.appendChild(tagElement);
+
+        tagElement.addEventListener('click', function() {
+            container.removeChild(tagElement);
+            });
+        }
     }
+
+    // Tag input and dropdown functionality for edit modal
+    document.getElementById('edit-task-tags').addEventListener('input', function() {
+        const query = this.value.trim();
+        const tagDropdown = document.getElementById('edit-task-tag-dropdown');
+        const selectedTagsContainer = document.getElementById('edit-selected-tags');
+
+        if (query.length > 0) {
+            fetch(`/tags?query=${query}`)
+                .then(response => response.json())
+                .then(tags => {
+                    tagDropdown.innerHTML = '';
+                    tags.forEach(tag => {
+                        const tagItem = document.createElement('div');
+                        tagItem.className = 'tag-item';
+                        tagItem.textContent = tag.name;
+                        tagItem.dataset.id = tag.id;
+                        tagItem.style.backgroundColor = tag.color_hex;
+                        tagDropdown.appendChild(tagItem);
+
+                        tagItem.addEventListener('click', function() {
+                            addEditTag(tag.name, tag.id, tag.color_hex, selectedTagsContainer);
+                            document.getElementById('edit-task-tags').value = '';
+                            tagDropdown.innerHTML = '';
+                        });
+                    });
+                    tagDropdown.style.display = 'block';
+                })
+                .catch(error => console.error('Error fetching tags:', error));
+        } else {
+            tagDropdown.style.display = 'none';
+        }
+    });
 
     // Function to update task status and group
     function updateTaskStatus(taskId, newStatusId) {

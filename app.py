@@ -207,27 +207,38 @@ def add_task():
     urgency_id = data.get('urgency_id')
     effort_id = data.get('effort_id')
     status_id = data.get('status_id', 1)
+    group_id = data.get('group_id', 1)  # Ensure group_id is always set to 1
     selected_tags = data.get('tags', [])
     new_tags = data.get('new_tags', [])
 
-    task = Tasks(title=title, description=description, deadline=deadline,
-                 urgency_id=urgency_id, effort_id=effort_id, status_id=status_id)
+    # Create task
+    task = Tasks(
+        title=title,
+        description=description,
+        deadline=deadline,
+        urgency_id=urgency_id,
+        effort_id=effort_id,
+        status_id=status_id,
+        group_id=group_id
+    )
     db.session.add(task)
     db.session.commit()
 
+    # Add selected tags to task
     for tag_id in selected_tags:
         tag = TaskTags.query.get(tag_id)
         if tag:
             task.tags.append(tag)
 
+    # Add new tags to task
     for tag_name in new_tags:
         existing_tag = TaskTags.query.filter_by(name=tag_name).first()
-        if existing_tag:
-            task.tags.append(existing_tag)
-        else:
+        if not existing_tag:
             new_tag = TaskTags(name=tag_name)
             db.session.add(new_tag)
             task.tags.append(new_tag)
+        else:
+            task.tags.append(existing_tag)
 
     db.session.commit()
 
@@ -261,20 +272,19 @@ def toggle_group_status(group_id):
 def get_task(task_id):
     task = Tasks.query.get(task_id)
     if task:
-        return jsonify({
+        task_data = {
             'id': task.id,
             'title': task.title,
             'description': task.description,
-            'deadline': task.deadline.isoformat(),
+            'deadline': task.deadline.isoformat(),  # Ensure deadline is in ISO format
             'urgency_id': task.urgency_id,
             'effort_id': task.effort_id,
-            'status': {
-                'id': task.status.id,
-                'name': task.status.name,
-                'color_hex': task.status.color_hex
-            }
-        })
-    return jsonify({'error': 'Task not found'}), 404
+            'status': {'id': task.status.id, 'name': task.status.name, 'color_hex': task.status.color_hex},
+            'tags': [{'id': tag.id, 'name': tag.name, 'color_hex': tag.color_hex} for tag in task.tags]
+        }
+        return jsonify(task_data)
+    else:
+        return jsonify({'error': 'Task not found'}), 404
 
 @app.route('/edit_task/<int:task_id>', methods=['POST'])
 def edit_task(task_id):
