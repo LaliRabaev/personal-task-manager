@@ -119,3 +119,20 @@ class TaskSteps(db.Model):
     status = db.Column(db.Enum('pending', 'in_progress', 'completed'), default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Conversation(db.Model):
+    __tablename__ = 'conversations'
+    conversation_id = db.Column(db.Integer, primary_key=True)
+    conversation_title = db.Column(db.String(45))
+    created_by = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.Enum('active', 'inactive', 'archived', name='status_enum'))
+    messages = db.relationship('Message', backref='conversation', lazy=True)
+
+class Message(db.Model):
+    __tablename__ = 'messages'
+    message_id = db.Column(db.Integer, primary_key=True)
+    conversation_id = db.Column(db.Integer, db.ForeignKey('conversations.conversation_id'), nullable=False)
+    sender = db.Column(db.Enum('User', 'Bot', name='sender_enum'))
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
