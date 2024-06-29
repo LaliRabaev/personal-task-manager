@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
 from datetime import datetime
 
 db = SQLAlchemy()
@@ -136,3 +137,20 @@ class Message(db.Model):
     sender = db.Column(db.Enum('User', 'Bot', name='sender_enum'))
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Users(db.Model, UserMixin):
+    user_id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(35), unique=True, nullable=False)
+    first_name = db.Column(db.String(35), nullable=False)
+    last_name = db.Column(db.String(35), nullable=False)
+    email = db.Column(db.String(254), unique=True, nullable=False)
+    password = db.Column(db.String(60), nullable=False)
+    birthday = db.Column(db.Date, nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.current_timestamp())
+    last_access_date = db.Column(db.DateTime, nullable=True)
+    updated_at = db.Column(db.DateTime, server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    is_active = db.Column(db.Boolean, default=True)
+    is_admin = db.Column(db.Boolean, default=False)
+
+    def get_id(self):
+        return str(self.user_id)
