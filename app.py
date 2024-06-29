@@ -1,12 +1,13 @@
 from flask import Flask, render_template, request, jsonify
-from models import db, Notes, Quotes, Tasks, TaskStatuses, TaskUrgency, TaskEffort, TaskGroups, TaskUpdates, TaskTags, TaskDependencies, TaskSteps
+from models import db, Notes, Quotes, Tasks, TaskStatuses, TaskUrgency, TaskEffort, TaskGroups, TaskUpdates, TaskTags, TaskDependencies, TaskSteps, Conversation, Message
 from dotenv import load_dotenv
 import os
 import random
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import json
-
+from openai_integration.data_manager import DataManager
+from openai_integration.openai_client import OpenAI_Client
 load_dotenv()
 
 app = Flask(__name__)
@@ -343,6 +344,87 @@ def delete_task(task_id):
         db.session.commit()
         return jsonify(success=True)
     return jsonify(success=False, error="Task not found"), 404
+
+@app.route('/chat')
+def chat():
+    return render_template('chat.html')
+
+@app.route('/start_conversation', methods=['POST'])
+def start_conversation():
+    user_id = request.form.get('user_id', 1)  # Assuming a default user ID for simplicity
+    conversation = Conversation(created_by=user_id, status='active')
+    db.session.add(conversation)
+    db.session.commit()
+    return jsonify(conversation_id=conversation.conversation_id)
+
+@app.route('/ask', methods=['POST'])
+def ask():
+    user_input = request.form['user_input']
+    model = request.form['model']
+    conversation_id = request.form['conversation_id']
+    conversation = Conversation.query.get(conversation_id)
+    
+    if not conversation or conversation.status != 'active':
+        return jsonify(error="Conversation not found or inactive"), 404
+    
+    user_message = Message(conversation_id=conversation_id, sender='User', content=user_input)
+    db.session.add(user_message)
+    db.session.commit()
+    
+    user_data = DataManager.get_user_data()
+    preferences = user_data.get('preferences', {})
+    
+    conversation_history = [
+        {"role": "system", "content": "You are a helpful assistant."}
+    ] + [
+        {"role": 'user' if message.sender == 'User' else 'assistant', "content": message.content}
+        for message in conversation.messages
+    ]
+    
+    response_text = OpenAI_Client.generate_response(user_input, user_data, preferences, model)
+    
+    bot_message = Message(conversation_id=conversation_id, sender='Bot', content=response_text)
+    db.session.add(bot_message)
+    db.session.commit()
+    
+    return jsonify(response=response_text)
+
+@app.route('/conversations', methods=['GET'])
+def get_conversations():
+    conversations = Conversation.query.filter_by(status='active').all()
+    conversations_data = [{"conversation_id": conv.conversation_id} for conv in conversations]
+    return jsonify(conversations=conversations_data)
+
+@app.route('/conversation/<int:conversation_id>', methods=['GET'])
+def get_conversation(conversation_id):
+    conversation = Conversation.query.get(conversation_id)
+    if not conversation:
+        return jsonify(error="Conversation not found"), 404
+    
+    messages = [
+        {"sender": message.sender, "content": message.content, "timestamp": message.timestamp}
+        for message in conversation.messages
+    ]
+    
+    return jsonify(messages=messages)
+
+@app.route('/delete_conversation/<int:conversation_id>', methods=['POST'])
+def delete_conversation(conversation_id):
+    conversation = Conversation.query.get(conversation_id)
+    if not conversation:
+        return jsonify(error="Conversation not found"), 404
+    conversation.status = 'inactive'
+    db.session.commit()
+    return jsonify(success=True)
+
+@app.route('/archive_conversation/<int:conversation_id>', methods=['POST'])
+def archive_conversation(conversation_id):
+    conversation = Conversation.query.get(conversation_id)
+    if not conversation:
+        return jsonify(error="Conversation not found"), 404
+    conversation.status = 'archived'
+    db.session.commit()
+    return jsonify(success=True)
 
 if __name__ == '__main__':
     with app.app_context():
