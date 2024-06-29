@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>My Chats</h2>
+            <div id="conversations-list"></div>
+            <button id="new-conversation" class="action-button">Start New Conversation</button>
+        </div>
+        <div class="chat-container">
+            <div id="chat-history" class="chat-history"></div>
+            <form id="chat-form" class="chat-input-area">
+                <select id="model-select" class="model-select">
+                    <option value="gpt-4">GPT-4</option>
+                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    <option value="dalle">DALL·E</option>
+                    <option value="tts">TTS</option>
+                    <option value="whisper">Whisper</option>
+                    <option value="embeddings">Embeddings</option>
+                    <option value="moderation">Moderation</option>
+                    <option value="gpt-base">GPT base</option>
+                </select>
+                <textarea id="user-input" placeholder="Ask your question..." class="user-input"></textarea>
+                <button type="submit" class="send-button">Send</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        let conversationId = null;
+
+        function loadConversations() {
+            fetch('/conversations')
+                .then(response => response.json())
+                .then(data => {
+                    const conversationsList = document.getElementById('conversations-list');
+                    conversationsList.innerHTML = '';
+                    data.conversations.forEach(conversation => {
+                        const conversationElement = document.createElement('div');
+                        conversationElement.classList.add('conversation-item');
+                        conversationElement.innerHTML = `
+                            <span class="conversation-title">Conversation ${conversation.conversation_id}</span>
+                            <div class="conversation-item-icons">
+                                <button class="archive-button">Archive</button>
+                                <button class="delete-button">Delete</button>
+                            </div>
+                        `;
+                        conversationElement.querySelector('.archive-button').addEventListener('click', () => {
+                            archiveConversation(conversation.conversation_id);
+                        });
+                        conversationElement.querySelector('.delete-button').addEventListener('click', () => {
+                            deleteConversation(conversation.conversation_id);
+                        });
+                        conversationElement.addEventListener('click', () => {
+                            conversationId = conversation.conversation_id;
+                            loadConversation(conversationId);
+                        });
+                        conversationsList.appendChild(conversationElement);
+                    });
+                });
+        }
+
+        function loadConversation(conversationId) {
+            fetch(`/conversation/${conversationId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const chatHistory = document.getElementById('chat-history');
+                    chatHistory.innerHTML = '';
+                    data.messages.forEach(message => {
+                        const messageElement = document.createElement('div');
+                        messageElement.classList.add('message', message.sender.toLowerCase());
+                        messageElement.innerHTML = `
+                            <div class="message-content">${message.content}</div>
+                            ${message.sender === 'Bot' ? '<button class="copy-button">Copy</button>' : ''}
+                        `;
+                        chatHistory.appendChild(messageElement);
+                        if (message.sender === 'Bot') {
+                            messageElement.querySelector('.copy-button').addEventListener('click', () => {
+                                navigator.clipboard.writeText(message.content);
+                            });
+                        }
+                    });
+                });
+        }
+
+        function archiveConversation(conversationId) {
+            fetch(`/archive_conversation/${conversationId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadConversations();
+                    }
+                });
+        }
+
+        function deleteConversation(conversationId) {
+            fetch(`/delete_conversation/${conversationId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadConversations();
+                    }
+                });
+        }
+
+        document.getElementById('new-conversation').addEventListener('click', function() {
+            fetch('/start_conversation', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    conversationId = data.conversation_id;
+                    document.getElementById('chat-history').innerHTML = '';
+                    loadConversations();
+                });
+        });
+
+        document.getElementById('chat-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            if (!conversationId) {
+                alert('Please start a new conversation first.');
+                return;
+            }
+            const userInput = document.getElementById('user-input').value;
+            const model = document.getElementById('model-select').value;
+            const formData = new FormData();
+            formData.append('user_input', userInput);
+            formData.append('model', model);
+            formData.append('conversation_id', conversationId);
+            
+            fetch('/ask', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const chatHistory = document.getElementById('chat-history');
+                const userMessage = document.createElement('div');
+                userMessage.classList.add('message', 'user');
+                userMessage.innerHTML = `
+                    <div class="message-content">${userInput}</div>
+                `;
+                chatHistory.appendChild(userMessage);
+                const botMessage = document.createElement('div');
+                botMessage.classList.add('message', 'bot');
+                botMessage.innerHTML = `
+                    <div class="message-content">${data.response}</div>
+                    <button class="copy-button">Copy</button>
+                `;
+                chatHistory.appendChild(botMessage);
+                document.getElementById('user-input').value = '';
+                botMessage.querySelector('.copy-button').addEventListener('click', () => {
+                    navigator.clipboard.writeText(data.response);
+                });
+            });
+        });
+
+        window.onload = loadConversations;
+    </script>
+</body>
+</html>
