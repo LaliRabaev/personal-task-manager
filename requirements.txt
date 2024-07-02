@@ -7,4 +7,4 @@ flask-login
 flask-bcrypt
 flask-mail
 itsdangerous
-gunicorn
+gunicorn 
