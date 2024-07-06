@@ -55,8 +55,12 @@ def load_user(user_id):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
+        email = request.form.get('email', None)
+        password = request.form.get('password', None)
+        if not email or not password:
+            flash('Please enter both email and password.')
+            return redirect(url_for('login'))
+
         logging.debug(f"Attempting to log in with email: {email}")
         user = Users.query.filter_by(email=email).first()
         if user:
@@ -124,12 +128,16 @@ def reset_password_token(token):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        first_name = request.form['first_name']
-        last_name = request.form['last_name']
-        email = request.form['email']
-        password = request.form['password']
-        confirm_password = request.form['confirm_password']
+        username = request.form.get('username', None)
+        first_name = request.form.get('first_name', None)
+        last_name = request.form.get('last_name', None)
+        email = request.form.get('email', None)
+        password = request.form.get('password', None)
+        confirm_password = request.form.get('confirm_password', None)
+
+        if not username or not first_name or not last_name or not email or not password or not confirm_password:
+            flash('Please fill out all fields.')
+            return redirect(url_for('register'))
 
         if password != confirm_password:
             flash('Passwords do not match')
